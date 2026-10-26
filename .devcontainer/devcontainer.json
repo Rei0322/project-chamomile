@@ -1,9 +1,18 @@
 {
   "name": "Project Chamomile",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-  "hostRequirements": { "cpus": 4, "memory": "16gb" },
-  "postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sh && (ollama serve > /tmp/ollama.log 2>&1 &) && sleep 5 && ollama pull gemma3:1b && npm install",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb"
+  },
+  "postCreateCommand": "npm install && sudo apt-get update && sudo apt-get install -y zstd && curl -fsSL https://ollama.com/install.sh | sh && (ollama serve > /tmp/ollama.log 2>&1 &) && sleep 5 && ollama pull gemma3:1b",
   "postStartCommand": "(ollama serve > /tmp/ollama.log 2>&1 &)",
-  "forwardPorts": [3000],
-  "portsAttributes": { "3000": { "label": "A Kingdom by the Sea" } }
+  "forwardPorts": [
+    3000
+  ],
+  "portsAttributes": {
+    "3000": {
+      "label": "A Kingdom by the Sea"
+    }
+  }
 }
