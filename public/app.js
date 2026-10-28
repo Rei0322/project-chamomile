@@ -187,7 +187,17 @@ let candles = 0;
 // ---------- The scene ----------
 const canvas = $("scene");
 const ctx = canvas.getContext("2d");
-const W = canvas.width, H = canvas.height;
+// Draw in an 800x500 coordinate space, rendered at the canvas's real (higher) resolution.
+const W = 800, H = 500;
+ctx.scale(canvas.width / W, canvas.height / H);
+
+// Optional painted art. Drop files into public/art/ and the scene uses them automatically.
+const art = {};
+for (const [key, file] of [["shore", "art/shore.png"], ["ghost", "art/ghost.png"]]) {
+  const img = new Image();
+  img.onload = () => (art[key] = img);
+  img.src = file;
+}
 const stars = Array.from({ length: 80 }, () => ({
   x: Math.random() * W, y: Math.random() * H * 0.45, r: Math.random() * 1.6 + 0.4, p: Math.random() * Math.PI * 2
 }));
@@ -201,6 +211,8 @@ function draw(t = 0) {
   const total = poem ? poem.stanzas.length : 6;
   const memory = game.remembered / total;   // how much of the world has come back
   const light = game.light / 100;
+
+  if (art.shore) { drawPainted(time, memory, light); requestAnimationFrame(draw); return; }
 
   // sky (brightens a little as she is remembered)
   const sky = ctx.createLinearGradient(0, 0, 0, H * 0.62);
@@ -270,6 +282,41 @@ function draw(t = 0) {
   requestAnimationFrame(draw);
 }
 
+// The painted version of the scene: artwork underneath, living effects on top.
+function drawPainted(time, memory, light) {
+  ctx.drawImage(art.shore, 0, 0, W, H);
+  // the world dims while she's forgotten and brightens as she returns
+  ctx.fillStyle = `rgba(5, 8, 22, ${0.45 * (1 - memory)})`;
+  ctx.fillRect(0, 0, W, H);
+  const visible = Math.floor(stars.length * (0.35 + 0.65 * memory));
+  for (let i = 0; i < visible; i++) {
+    const s = stars[i];
+    ctx.globalAlpha = 0.25 + 0.35 * Math.sin(time * 1.5 + s.p);
+    ctx.fillStyle = "#f3ecd2";
+    ctx.fillRect(s.x, s.y * 0.8, s.r, s.r);
+  }
+  ctx.globalAlpha = 1;
+  drawPetalsAndCandles(time, memory);
+  drawGhost(time, memory, light);
+}
+
+function drawPetalsAndCandles(time, memory) {
+  const lit = Math.floor(petals.length * memory);
+  for (let i = 0; i < lit; i++) {
+    const pt = petals[i];
+    const x = W * (0.12 + 0.38 * pt.t) + pt.off;
+    const y = H * (0.69 - 0.09 * pt.t) + Math.sin(time + pt.p) * 1.2;
+    ctx.fillStyle = i % 3 ? "#f2a33a" : "#e07b24";
+    ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
+  }
+  for (let i = 0; i < Math.min(candles, 7); i++) {
+    const x = W * (0.44 + i * 0.02), y = H * 0.6;
+    ctx.fillStyle = "#e8e2d0"; ctx.fillRect(x, y - 10, 4, 10);
+    ctx.fillStyle = "#f2a33a"; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 6 + i);
+    ctx.beginPath(); ctx.arc(x + 2, y - 13, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  }
+}
+
 // Annabel Lee: a pale arsenic-green figure beside her tomb.
 // She grows more solid with every stanza, and dims as her light drains.
 function drawGhost(time, memory, light) {
@@ -278,6 +325,18 @@ function drawGhost(time, memory, light) {
   let alpha = (0.15 + 0.75 * memory) * (0.35 + 0.65 * light);
   if (game.flicker) alpha *= 0.5 + 0.5 * Math.sin(time * 40);
   const x = W * 0.66, y = H * 0.36 + Math.sin(time * 1.2) * 3;
+
+  if (art.ghost) {
+    const gh = H * 0.5, gw = gh * art.ghost.width / art.ghost.height;
+    const glowG = ctx.createRadialGradient(x, y + gh * 0.45, 6, x, y + gh * 0.45, gh * 0.8);
+    glowG.addColorStop(0, `rgba(159,216,168,${0.4 * alpha})`);
+    glowG.addColorStop(1, "rgba(159,216,168,0)");
+    ctx.fillStyle = glowG; ctx.fillRect(x - gh, y - gh * 0.4, gh * 2, gh * 1.8);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(art.ghost, x - gw / 2, y - gh * 0.1, gw, gh);
+    ctx.globalAlpha = 1;
+    return;
+  }
 
   // glow
   const glow = ctx.createRadialGradient(x, y + 40, 4, x, y + 40, 90);

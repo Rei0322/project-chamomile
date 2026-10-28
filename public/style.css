@@ -25,7 +25,7 @@ body {
 .loader-pct { font-size: .8rem; letter-spacing: .05em; }
 
 #stage { width: min(800px, 100%); }
-canvas { width: 100%; height: auto; display: block; image-rendering: pixelated;
+canvas { width: 100%; height: auto; display: block; 
   border: 3px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
 
 .meter-wrap { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; font-family: Verdana, Tahoma, sans-serif; font-size: .8rem; }
