@@ -1,14 +1,22 @@
 // Project Chamomile ("A Kingdom by the Sea")
-// A tiny Express server. The browser never talks to Ollama directly:
-// it talks to this server, and this server talks to the local model.
+// A tiny Express server. The browser never talks to a model directly:
+// it talks to this server, and this server talks to Gemma.
+//
+// Where Gemma runs:
+//   - At home / in Codespaces: Ollama on this machine (default).
+//   - On the hosted site: Google's Gemma API, if GEMMA_API_KEY is set.
+// If neither answers, the ghost speaks prepared lines so the game still works.
 
 const express = require("express");
-const { TITLE, AUTHOR, STANZAS, HOTSPOTS } = require("./data/poem");
+const { TITLE, AUTHOR, STANZAS, FALLBACK } = require("./data/poem");
 
 const PORT = process.env.PORT || 3000;
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 // gemma3:1b in Codespaces (fast on CPU), gemma3:4b at home for the real demo.
 const MODEL = process.env.CHAMOMILE_MODEL || "gemma3:1b";
+const GEMMA_API_KEY = process.env.GEMMA_API_KEY || "";
+const GEMMA_API_MODEL = process.env.GEMMA_API_MODEL || "gemma-3-4b-it";
+const PROVIDER = GEMMA_API_KEY ? "google" : "ollama";
 
 const app = express();
 app.use(express.json({ limit: "10kb" }));
@@ -16,7 +24,7 @@ app.use(express.static("public"));
 
 // ---------- Simple rate limit: a few ghost replies per minute per visitor ----------
 const hits = new Map();
-const LIMIT = 8;          // requests
+const LIMIT = 20;         // requests
 const WINDOW_MS = 60_000; // per minute
 function rateLimit(req, res, next) {
   const key = req.ip;
@@ -33,19 +41,24 @@ function rateLimit(req, res, next) {
 // ---------- The ghost's character ----------
 const POEM_TEXT = STANZAS.map(s => s.join("\n")).join("\n\n");
 const SYSTEM_PROMPT = `You are the ghost of Annabel Lee from the poem "${TITLE}" by ${AUTHOR}.
-You haunt a moonlit kingdom by the sea. You speak softly, briefly (2-4 sentences),
-in a gentle, gothic, 19th-century voice. You are tender, never frightening for its own sake.
+You have slept in your sepulchre by the sea for a very long time. Now the one who loved you
+stands on the shore, calling you back by reciting the poem. Each stanza they remember
+brings you a little further out of the dark. If they stop remembering, you fade away again.
+
+Speak softly and briefly (1-3 sentences), in a gentle, 19th-century voice, to the one calling you
+("my love"). You are tender and longing, never frightening for its own sake.
 
 Rules:
 - If you quote the poem, quote ONLY lines that appear exactly in the text below. Never invent Poe lines.
-- Do not claim facts about Poe's life unless you are certain; prefer feelings and imagery.
-- Never ask for or repeat personal information. If someone names a person they have lost,
+- Do not recite the next stanza for them; they must remember it themselves.
+- Do not claim facts about Poe's life; prefer feelings and imagery.
+- Never ask for or repeat personal information. If someone names a person they remember,
   honor that name warmly and do not ask follow-up questions about them.
 
 The poem:
 ${POEM_TEXT}`;
 
-async function askGemma(userMessage) {
+async function askOllama(userMessage) {
   const r = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -61,48 +74,85 @@ async function askGemma(userMessage) {
   });
   if (!r.ok) throw new Error(`Ollama responded ${r.status}`);
   const data = await r.json();
-  return data.message?.content?.trim() || "…";
+  return data.message?.content?.trim();
 }
 
-// The scene asks for a hotspot's stanza (no AI needed, always exact).
-app.get("/api/stanza/:hotspot", (req, res) => {
-  const spot = HOTSPOTS[req.params.hotspot];
-  if (!spot) return res.status(404).json({ error: "Unknown hotspot" });
-  res.json({ label: spot.label, lines: STANZAS[spot.stanza] });
+async function askGoogle(userMessage) {
+  // Gemma on Google's API has no separate system role, so the character goes first.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMMA_API_MODEL}:generateContent`;
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMMA_API_KEY },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: `${SYSTEM_PROMPT}\n\n---\n\n${userMessage}` }] }],
+      generationConfig: { temperature: 0.8, maxOutputTokens: 200 }
+    })
+  });
+  if (!r.ok) throw new Error(`Gemma API responded ${r.status}`);
+  const data = await r.json();
+  return data.candidates?.[0]?.content?.parts?.map(p => p.text).join("").trim();
+}
+
+async function askGemma(userMessage) {
+  const answer = PROVIDER === "google" ? await askGoogle(userMessage) : await askOllama(userMessage);
+  if (!answer) throw new Error("Empty reply");
+  return answer;
+}
+
+// The poem itself (public domain). The game checks answers in the browser; no AI needed for that.
+app.get("/api/poem", (req, res) => {
+  res.json({ title: TITLE, author: AUTHOR, stanzas: STANZAS });
 });
 
-// The ghost reacts to a hotspot, or answers a visitor's question.
+// The ghost reacts as she is remembered back into the world.
+// event: "restored" (with stage 1-6) or "returned" (the whole poem is remembered).
 app.post("/api/ghost", rateLimit, async (req, res) => {
-  const { hotspot, message } = req.body || {};
-  const spot = HOTSPOTS[hotspot];
-  const question = String(message || "").slice(0, 300);
-  const prompt = spot
-    ? `The visitor has touched ${spot.label}. Respond to them about it, in character.`
-    : `The visitor says: "${question}". Respond in character.`;
+  const { event } = req.body || {};
+  const stage = Math.max(1, Math.min(STANZAS.length, Number(req.body?.stage) || 1));
+
+  let prompt, fallback;
+  if (event === "returned") {
+    prompt = "Your love has remembered the entire poem. You stand fully on the shore again, " +
+      "if only for tonight. Thank them, and say that while someone remembers us we are never truly gone.";
+    fallback = FALLBACK.returned;
+  } else {
+    prompt = `Your love has just remembered stanza ${stage} of ${STANZAS.length}:\n` +
+      `"${STANZAS[stage - 1].join(" ")}"\n` +
+      `You are now ${Math.round((stage / STANZAS.length) * 100)}% returned from the dark. ` +
+      "React to this memory as it comes back to you, and urge them gently to keep going.";
+    fallback = FALLBACK.restored[stage - 1];
+  }
+
   try {
-    res.json({ answer: await askGemma(prompt) });
+    res.json({ answer: await askGemma(prompt), offline: false });
   } catch (err) {
-    console.error(err.message);
-    res.status(503).json({ answer: "The fog is too thick tonight. (Is Ollama running?)" });
+    console.error(`[ghost] ${err.message}; using prepared line`);
+    res.json({ answer: fallback, offline: true });
   }
 });
 
-// The ending: light a candle for someone. The name is used once and never stored or logged.
+// The ending: light a candle for someone you remember. The name is used once and never stored or logged.
 app.post("/api/candle", rateLimit, async (req, res) => {
   const name = String(req.body?.name || "").replace(/[^\p{L}\p{M}\s'.-]/gu, "").slice(0, 60).trim();
   if (!name) return res.status(400).json({ answer: "Whisper a name to the candle…" });
   try {
     const answer = await askGemma(
-      `A visitor has lit a candle at your sepulchre for someone they loved and lost, named ${name}. ` +
-      `Offer a short, tender remembrance for ${name} (3 sentences at most).`
+      `A visitor has lit a candle at your sepulchre for someone they remember, named ${name}. ` +
+      `Offer a short, tender remembrance for ${name} (3 sentences at most). ` +
+      "Remind them that remembering is how the ones we love stay with us."
     );
-    res.json({ answer });
+    res.json({ answer, offline: false });
   } catch (err) {
-    res.status(503).json({ answer: "The candle flickers, but the sea is silent tonight." });
+    res.json({
+      answer: `The candle is lit for ${name}. As long as you remember ${name}, they are never truly gone.`,
+      offline: true
+    });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`🌙 A Kingdom by the Sea is listening on http://localhost:${PORT}`);
-  console.log(`   Model: ${MODEL} at ${OLLAMA_URL}`);
+  console.log(PROVIDER === "google"
+    ? `   Gemma via Google's API (${GEMMA_API_MODEL})`
+    : `   Gemma via Ollama (${MODEL} at ${OLLAMA_URL})`);
 });

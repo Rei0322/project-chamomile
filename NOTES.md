@@ -12,7 +12,7 @@ Future you, writing the submission post on Oct 31, will thank you.
 -
 
 ## Oct 28
--
+- Reworked the concept: you're her lost love, calling her back by remembering the poem. Forget, and she fades, like in Coco. Marigold path lights up as she's remembered.
 
 ## Oct 29
 -

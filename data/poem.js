@@ -1,6 +1,6 @@
 // "Annabel Lee" by Edgar Allan Poe (1849). Public domain.
-// Each hotspot in the scene reveals one stanza. The ghost is only allowed
-// to quote lines from this file, so she never invents "Poe" lines.
+// The player calls Annabel Lee back by remembering the poem, one stanza at a time.
+// The ghost is only allowed to quote lines from this file, so she never invents "Poe" lines.
 
 const TITLE = "Annabel Lee";
 const AUTHOR = "Edgar Allan Poe";
@@ -61,12 +61,25 @@ const STANZAS = [
   ]
 ];
 
-// Which stanza each hotspot wakes. Change freely.
-const HOTSPOTS = {
-  sea:        { label: "the sea",        stanza: 0 },
-  stars:      { label: "the stars",      stanza: 4 },
-  moon:       { label: "the moon",       stanza: 5 },
-  sepulchre:  { label: "the sepulchre",  stanza: 2 }
+// What the ghost says if no model is reachable (and the hosted fallback).
+// These are her own words, not Poe's, so they never pass as quotes.
+const FALLBACK = {
+  restored: [
+    "…a voice? Someone is saying my name across the water.",
+    "Yes… we were children here. I remember the salt in the air.",
+    "The wind… I remember the cold of it. Keep speaking. Don't let it take me again.",
+    "The angels envied us. I can feel my hands again, love.",
+    "Nothing could part us. Not the angels, not the deep. Say the rest. Please.",
+    "The moon. The stars. You remembered all of it."
+  ],
+  stumble: [
+    "That isn't how it goes… the words are slipping…",
+    "No… I'm fading… try again, my love.",
+    "The fog is closing in. Remember it truly."
+  ],
+  returned:
+    "You remembered every word, so I could come back to you, if only for tonight. " +
+    "While someone remembers us, we are never truly gone. Light a candle with me for someone you remember."
 };
 
-module.exports = { TITLE, AUTHOR, STANZAS, HOTSPOTS };
+module.exports = { TITLE, AUTHOR, STANZAS, FALLBACK };

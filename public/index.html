@@ -15,25 +15,44 @@
   </div>
 
   <main id="stage" hidden>
-    <canvas id="scene" width="800" height="500" aria-label="A moonlit shore with a sepulchre by the sea"></canvas>
+    <canvas id="scene" width="800" height="500"
+      aria-label="A moonlit shore with a sepulchre by the sea. A pale green ghost appears as she is remembered."></canvas>
 
-    <!-- Invisible-but-focusable hotspots layered over the canvas (keyboard + screen reader friendly) -->
-    <button class="hotspot" data-spot="moon"      style="left:72%;top:10%;width:14%;height:20%">The moon</button>
-    <button class="hotspot" data-spot="stars"     style="left:8%;top:4%;width:40%;height:22%">The stars</button>
-    <button class="hotspot" data-spot="sea"       style="left:0%;top:62%;width:100%;height:38%">The sea</button>
-    <button class="hotspot" data-spot="sepulchre" style="left:40%;top:38%;width:20%;height:26%">The sepulchre</button>
+    <!-- How much of her is still here -->
+    <div class="meter-wrap">
+      <span class="meter-label">Her light</span>
+      <div class="meter" id="meter" role="progressbar" aria-label="Her light" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
+        <div class="meter-fill" id="meterFill"></div>
+      </div>
+      <span class="meter-count" id="count">0 / 6 remembered</span>
+    </div>
 
-    <section id="dialogue" aria-live="polite">
-      <p id="stanza" class="stanza"></p>
-      <p id="ghost" class="ghost">Touch the night. Something here remembers.</p>
+    <section id="dialogue">
+      <div id="intro">
+        <p class="stanza">She has slept in her sepulchre by the sea for a very long time.<br>
+          Call her back by remembering the poem, one stanza at a time.<br>
+          If you forget, she fades into the dark again.</p>
+        <button id="begin" class="big">Call her back</button>
+      </div>
+
+      <p id="stanza" class="stanza" hidden></p>
+      <div id="choices" class="choices" hidden></div>
+      <p id="ghost" class="ghost" aria-live="polite"></p>
+      <button id="next" class="big" hidden>Keep remembering</button>
+      <button id="again" class="big" hidden>Call her back again</button>
+
       <form id="candle" hidden>
-        <label for="name">Light a candle for someone you loved:</label>
+        <label for="name">Light a candle for someone you remember:</label>
         <input id="name" maxlength="60" autocomplete="off" placeholder="a name…" />
         <button type="submit">🕯️ Light</button>
-        <small>The name is spoken once to a model on this computer and never saved.</small>
+        <small id="privacy">The name is spoken once to Gemma to write the remembrance and is never saved.</small>
       </form>
     </section>
-    <label class="quiet"><input type="checkbox" id="quiet" /> Quiet mode (no motion)</label>
+
+    <div class="toggles">
+      <label><input type="checkbox" id="gentle" /> Gentle mode (she won't fade)</label>
+      <label><input type="checkbox" id="quiet" /> Quiet mode (no motion)</label>
+    </div>
   </main>
 
   <script src="app.js"></script>

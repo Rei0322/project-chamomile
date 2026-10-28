@@ -1,33 +1,59 @@
-/* Starter styles: Shockwave-era chunky + gothic moonlight. Restyle freely. */
+/* Shockwave-era chunky + gothic moonlight. Annabel Lee glows arsenic green. */
 :root {
   --night: #0b1026;
   --ink: #e8e2d0;
   --moon: #f3ecd2;
   --accent: #8fb3d9;   /* hydrangea blue */
+  --ghost: #9fd8a8;    /* pale arsenic glow */
+  --ghost-deep: #3f7d4f;
+  --marigold: #f2a33a; /* cempasúchil, to light the way home */
   --bevel-hi: #4a5a8a;
   --bevel-lo: #05081a;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.stanza span { transition: opacity .6s ease; }
 body {
   margin: 0; min-height: 100vh; background: var(--night); color: var(--ink);
   font-family: Georgia, "Times New Roman", serif; display: grid; place-items: center;
+  padding: 1rem;
 }
 #loader { text-align: center; font-family: Verdana, Tahoma, sans-serif; }
 .loader-title { font-family: Georgia, serif; font-style: italic; font-size: 1.6rem; }
-.bar { width: 320px; height: 18px; border: 2px solid; border-color: var(--bevel-lo) var(--bevel-hi) var(--bevel-hi) var(--bevel-lo); background: #000; }
-.fill { height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--accent) 0 10px, #5f7fa8 10px 12px); }
+.bar { width: min(320px, 80vw); height: 18px; border: 2px solid; border-color: var(--bevel-lo) var(--bevel-hi) var(--bevel-hi) var(--bevel-lo); background: #000; }
+.fill { height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--ghost) 0 10px, var(--ghost-deep) 10px 12px); }
 .loader-pct { font-size: .8rem; letter-spacing: .05em; }
 
-#stage { position: relative; width: min(800px, 96vw); }
-canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; border: 3px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
-.hotspot { position: absolute; background: transparent; border: 0; color: transparent; cursor: pointer; }
-.hotspot:focus-visible, .hotspot:hover { outline: 2px dashed var(--moon); outline-offset: -4px; }
+#stage { width: min(800px, 100%); }
+canvas { width: 100%; height: auto; display: block; image-rendering: pixelated;
+  border: 3px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
 
-#dialogue { margin-top: .75rem; padding: .9rem 1rem; min-height: 9rem; background: rgba(5,8,26,.85);
+.meter-wrap { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; font-family: Verdana, Tahoma, sans-serif; font-size: .8rem; }
+.meter { flex: 1; height: 14px; background: #000; border: 2px solid; border-color: var(--bevel-lo) var(--bevel-hi) var(--bevel-hi) var(--bevel-lo); }
+.meter-fill { height: 100%; width: 60%; background: var(--ghost); box-shadow: 0 0 8px var(--ghost); transition: width .15s linear; }
+.meter-fill.low { background: #c9b26b; box-shadow: 0 0 8px #c9b26b; }
+
+#dialogue { margin-top: .75rem; padding: .9rem 1rem; min-height: 10rem; background: rgba(5,8,26,.85);
   border: 2px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
-.stanza { white-space: pre-line; font-style: italic; color: var(--moon); margin: 0 0 .6rem; }
-.ghost { margin: 0; color: var(--accent); }
+.stanza { white-space: pre-line; font-style: italic; color: var(--moon); margin: 0 0 .7rem; line-height: 1.5; }
+.stanza .missing { color: var(--ghost); }
+.ghost { margin: .4rem 0 0; color: var(--ghost); text-shadow: 0 0 6px rgba(159,216,168,.45); min-height: 1.4em; }
+.ghost.offline::after { content: " ✦"; opacity: .6; }
+
+.choices { display: grid; gap: .45rem; margin: .2rem 0 .6rem; }
+button { font: inherit; color: var(--ink); background: #18203f; cursor: pointer; padding: .45rem .8rem;
+  border: 2px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
+button:hover, button:focus-visible { background: #22305c; outline: 2px dashed var(--ghost); outline-offset: 2px; }
+button:active { border-color: var(--bevel-lo) var(--bevel-hi) var(--bevel-hi) var(--bevel-lo); }
+button:disabled { opacity: .4; cursor: default; }
+.choices button { text-align: left; font-style: italic; }
+button.big { margin-top: .6rem; }
+
 #candle { margin-top: .8rem; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
-#candle input { flex: 1 1 10rem; padding: .35rem; font: inherit; }
+#candle label { flex-basis: 100%; }
+#candle input { flex: 1 1 10rem; padding: .4rem; font: inherit; }
 #candle small { flex-basis: 100%; opacity: .7; }
-.quiet { display: block; margin-top: .5rem; font-size: .85rem; opacity: .8; }
+
+.toggles { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: .6rem; font-size: .85rem; opacity: .85; }
+
+@media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
