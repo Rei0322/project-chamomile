@@ -150,9 +150,14 @@ app.post("/api/candle", rateLimit, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🌙 A Kingdom by the Sea is listening on http://localhost:${PORT}`);
-  console.log(PROVIDER === "google"
-    ? `   Gemma via Google's API (${GEMMA_API_MODEL})`
-    : `   Gemma via Ollama (${MODEL} at ${OLLAMA_URL})`);
-});
+// Locally (npm start) we listen on a port. On Vercel, the exported app is the handler.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🌙 A Kingdom by the Sea is listening on http://localhost:${PORT}`);
+    console.log(PROVIDER === "google"
+      ? `   Gemma via Google's API (${GEMMA_API_MODEL})`
+      : `   Gemma via Ollama (${MODEL} at ${OLLAMA_URL})`);
+  });
+}
+
+module.exports = app;
