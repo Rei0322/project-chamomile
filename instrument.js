@@ -17,6 +17,7 @@ if (process.env.SENTRY_DSN) {
     sendDefaultPii: false,
     beforeSend: scrub,
     beforeSendTransaction: scrub,
+    traceLifecycle: "static",   // send whole traces at once, so the scrub above runs on them too
     environment: process.env.SENTRY_ENVIRONMENT || (process.env.CODESPACES ? "codespaces" : "local")
   });
 }
