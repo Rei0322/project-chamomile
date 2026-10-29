@@ -89,7 +89,7 @@ async function askGoogle(userMessage) {
     headers: { "Content-Type": "application/json", "x-goog-api-key": GEMMA_API_KEY },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: `${SYSTEM_PROMPT}\n\n---\n\n${userMessage}` }] }],
-      generationConfig: { temperature: 0.8, maxOutputTokens: 200 }
+      generationConfig: { temperature: 0.8, maxOutputTokens: 1024 }   // room in case the model thinks before it speaks
     })
   });
   if (!r.ok) throw new Error(`Gemma API responded ${r.status}: ${(await r.text()).slice(0, 160)}`);
