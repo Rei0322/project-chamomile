@@ -105,7 +105,7 @@ stanza5-b.mp3
 [whispers] Of the beautiful Annabel Lee;
 
 2 - Annabel Narrator
-[clear, tender, close] …say the rest. Please.
+[clear, tender, close] …stay with me, please.
 
 ==============================
 stanza6-a.mp3   (Poe Narrator only)
