@@ -162,7 +162,9 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 function recite(n) {
   if (!$("sound").checked) return Promise.resolve();
   return new Promise(done => {
-    const a = new Audio(`audio/stanza${n}.mp3`);
+    // testing alternate takes: add ?take3=2 to the address to hear stanza 3, take 2
+    const take = new URLSearchParams(location.search).get(`take${n}`);
+    const a = new Audio(take ? `audio/stanza${n}-take${take}.mp3` : `audio/stanza${n}.mp3`);
     const finish = () => { clearTimeout(cap); done(); };
     const cap = setTimeout(finish, 40000);
     a.addEventListener("ended", finish);
