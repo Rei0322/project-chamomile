@@ -67,7 +67,7 @@ Everything this project uses, so it's all traceable.
 | **The Met, fashion plate** | Annabel's gown is based on *Le Follet*, April 1849 (the year the poem was published), from The Metropolitan Museum of Art's fashion plate collection. |
 | **Sentry** | Tracing every call to Gemma: which model answered, how long it took, tokens in and out, and every time the ghost had to fall back to a prepared line. No prompts, replies or candle names are sent. |
 | **GitHub Codespaces** | Building and testing in the cloud during the week. |
-| **Claude (Anthropic)** | AI pair-programming help with the code. |
+| **Claude Code (Anthropic)** | Coding assistant for the build. |
 | **Node.js + Express**, HTML canvas | The game itself: no Flash, no game engine. |
 
 The poem: "Annabel Lee" by Edgar Allan Poe (1849), public domain.

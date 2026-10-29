@@ -80,3 +80,13 @@ button.big { margin-top: .6rem; }
 @keyframes creditsIn { from { opacity: 0; } }
 #credits.still .roll { position: static; animation: none; padding: 1rem; }
 #credits.still { overflow-y: auto; }
+
+/* Wide screens: the poem and her words sit beside the scene, so nothing needs scrolling */
+@media (min-width: 1000px) {
+  #stage { width: min(1560px, 100%); display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(320px, 1fr);
+    grid-template-areas: "scene dialogue" "meter dialogue" "toggles toggles"; column-gap: 1rem; align-items: start; }
+  .scene-wrap { grid-area: scene; }
+  .meter-wrap { grid-area: meter; }
+  .toggles { grid-area: toggles; }
+  #dialogue { grid-area: dialogue; margin-top: 0; align-self: stretch; contain: size; overflow-y: auto; min-height: 0; }
+}

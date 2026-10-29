@@ -278,7 +278,7 @@ async function ghost(body) {
   } catch { return { answer: "…", offline: true }; }
 }
 
-$("begin").addEventListener("click", () => { $("intro").hidden = true; startBed(); showStanza(); });
+$("begin").addEventListener("click", () => { $("intro").hidden = true; game.begun = true; startBed(); showStanza(); });
 $("next").addEventListener("click", showStanza);
 $("again").addEventListener("click", reset);
 
@@ -346,7 +346,9 @@ ctx.scale(canvas.width / W, canvas.height / H);
 // Where things sit. The painted shore has its tomb and path in different spots than the drawn one.
 const LAYOUT = {
   drawn:   { ghostX: 0.66, ghostY: 0.36, ghostH: 0.5, path: [[0.12, 0.69], [0.50, 0.60]], candles: [0.44, 0.60] },
-  painted: { ghostX: 0.56, ghostY: 0.25, ghostH: 0.52, path: [[0.07, 0.97], [0.33, 0.61]], candles: [0.30, 0.62] }
+  painted: { ghostX: 0.56, ghostY: 0.25, ghostH: 0.52, candles: [0.30, 0.62],
+             // the walkway, from the bottom of the shore up to the tomb steps
+             path: [[0.165, 1.0], [0.12, 0.89], [0.105, 0.8], [0.16, 0.735], [0.25, 0.694], [0.31, 0.657], [0.335, 0.63]] }
 };
 const layout = () => (art.shore ? LAYOUT.painted : LAYOUT.drawn);
 
@@ -423,9 +425,29 @@ const stars = Array.from({ length: 80 }, () => ({
   x: Math.random() * W, y: Math.random() * H * 0.45, r: Math.random() * 1.6 + 0.4, p: Math.random() * Math.PI * 2
 }));
 // Marigold petals light the path to the sepulchre, one handful per stanza remembered.
-const petals = Array.from({ length: 48 }, (_, i) => ({
-  t: i / 48, off: (Math.random() - 0.5) * 26, r: Math.random() * 2 + 2, p: Math.random() * Math.PI * 2
+const PETALS = 90;
+const petals = Array.from({ length: PETALS }, (_, i) => ({
+  t: (i + Math.random() * 0.6) / PETALS, off: (Math.random() - 0.5) * 22, r: Math.random() * 1.6 + 1.8, p: Math.random() * Math.PI * 2
 }));
+// Petals lay themselves down the path a few at a time, like a road unrolling toward the tomb.
+let petalsShown = 0, petalsAt = 0;
+function petalCount(memory) {
+  const target = Math.floor(petals.length * memory), now = performance.now();
+  if (isQuiet() || target < petalsShown) petalsShown = target;
+  else if (petalsShown < target && now - petalsAt > 90) { petalsShown++; petalsAt = now; }
+  return petalsShown;
+}
+// A point t (0-1) along the walkway, with an offset across it, so petals line the path the whole way.
+function pathAt(t, off) {
+  const pts = layout().path.map(([x, y]) => [x * W, y * H]);
+  const seg = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+  let d = t * seg.reduce((a, b) => a + b, 0), i = 0;
+  while (i < seg.length - 1 && d > seg[i]) d -= seg[i++];
+  const [ax, ay] = pts[i], [bx, by] = pts[i + 1], k = Math.min(1, d / seg[i]);
+  const nx = -(by - ay) / seg[i], ny = (bx - ax) / seg[i];   // across the path
+  const narrow = 1 - 0.55 * t;                                // the path narrows toward the tomb
+  return [ax + (bx - ax) * k + nx * off * narrow, ay + (by - ay) * k + ny * off * narrow * 0.6];
+}
 
 const FPS = 12;   // Flash games often ran at 12 frames a second: motion in little steps
 let lastStep = -1;
@@ -473,12 +495,10 @@ function draw(t = 0) {
   ctx.fillStyle = "#1a1d33"; ctx.fillRect(W * 0.485, H * 0.48, W * 0.03, H * 0.12);
 
   // marigold path from the viewer to the tomb
-  const lit = Math.floor(petals.length * memory);
+  const lit = petalCount(memory);
   for (let i = 0; i < lit; i++) {
     const pt = petals[i];
-    const [[x0, y0], [x1, y1]] = layout().path;
-    const x = W * (x0 + (x1 - x0) * pt.t) + pt.off;
-    const y = H * (y0 + (y1 - y0) * pt.t) + Math.sin(time + pt.p) * 1.2;
+    const [x, py] = pathAt(pt.t, pt.off), y = py + Math.sin(time + pt.p) * 1.2;
     ctx.fillStyle = i % 3 ? "#f2a33a" : "#e07b24";
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
   }
@@ -595,12 +615,10 @@ function drawMotes(time, memory) {
 }
 
 function drawPetalsAndCandles(time, memory) {
-  const lit = Math.floor(petals.length * memory);
+  const lit = petalCount(memory);
   for (let i = 0; i < lit; i++) {
     const pt = petals[i];
-    const [[x0, y0], [x1, y1]] = layout().path;
-    const x = W * (x0 + (x1 - x0) * pt.t) + pt.off;
-    const y = H * (y0 + (y1 - y0) * pt.t) + Math.sin(time + pt.p) * 1.2;
+    const [x, py] = pathAt(pt.t, pt.off), y = py + Math.sin(time + pt.p) * 1.2;
     ctx.fillStyle = i % 3 ? "#f2a33a" : "#e07b24";
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
   }
@@ -630,8 +648,8 @@ function drawCandles(time) {
 // Annabel Lee: a pale arsenic-green figure beside her tomb.
 // She grows more solid with every stanza, and dims as her light drains.
 function drawGhost(time, memory, light) {
-  if (game.remembered === 0 && !game.choosing) return;
-  let alpha = (0.15 + 0.75 * memory) * (0.35 + 0.65 * light);
+  if (!game.begun) return;   // once you start calling, she is there: faint at first, clearer as you remember
+  let alpha = (0.3 + 0.62 * memory) * (0.35 + 0.65 * light);
   // a wrong line makes her waver for under a second; in quiet mode she just dims briefly (no strobing)
   const f = Math.max(0, 1 - (performance.now() - (game.flickerAt || -1e9)) / 700);
   if (f > 0) alpha *= isQuiet() ? 1 - 0.3 * f : 1 - 0.45 * f * (0.5 + 0.5 * Math.sin(performance.now() / 40));
