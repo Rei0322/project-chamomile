@@ -188,12 +188,19 @@ let candles = 0;
 const canvas = $("scene");
 const ctx = canvas.getContext("2d");
 // Draw in an 800x500 coordinate space, rendered at the canvas's real (higher) resolution.
-const W = 800, H = 500;
+const W = 800, H = 450;
 ctx.scale(canvas.width / W, canvas.height / H);
+
+// Where things sit. The painted shore has its tomb and path in different spots than the drawn one.
+const LAYOUT = {
+  drawn:   { ghostX: 0.66, ghostY: 0.36, ghostH: 0.5, path: [[0.12, 0.69], [0.50, 0.60]], candles: [0.44, 0.60] },
+  painted: { ghostX: 0.56, ghostY: 0.25, ghostH: 0.52, path: [[0.07, 0.97], [0.33, 0.61]], candles: [0.30, 0.62] }
+};
+const layout = () => (art.shore ? LAYOUT.painted : LAYOUT.drawn);
 
 // Optional painted art. Drop files into public/art/ and the scene uses them automatically.
 const art = {};
-for (const [key, file] of [["shore", "art/shore.png"], ["ghost", "art/ghost.png"]]) {
+for (const [key, file] of [["shore", "art/shore.jpg"], ["ghost", "art/ghost.png"]]) {
   const img = new Image();
   img.onload = () => (art[key] = img);
   img.src = file;
@@ -250,15 +257,16 @@ function draw(t = 0) {
   const lit = Math.floor(petals.length * memory);
   for (let i = 0; i < lit; i++) {
     const pt = petals[i];
-    const x = W * (0.12 + 0.38 * pt.t) + pt.off;
-    const y = H * (0.69 - 0.09 * pt.t) + Math.sin(time + pt.p) * 1.2;
+    const [[x0, y0], [x1, y1]] = layout().path;
+    const x = W * (x0 + (x1 - x0) * pt.t) + pt.off;
+    const y = H * (y0 + (y1 - y0) * pt.t) + Math.sin(time + pt.p) * 1.2;
     ctx.fillStyle = i % 3 ? "#f2a33a" : "#e07b24";
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
   }
 
   // candles lit at the end
   for (let i = 0; i < Math.min(candles, 7); i++) {
-    const x = W * (0.44 + i * 0.02), y = H * 0.6;
+    const x = W * (layout().candles[0] + i * 0.02), y = H * layout().candles[1];
     ctx.fillStyle = "#e8e2d0"; ctx.fillRect(x, y - 10, 4, 10);
     ctx.fillStyle = "#f2a33a"; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 6 + i);
     ctx.beginPath(); ctx.arc(x + 2, y - 13, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
@@ -304,13 +312,14 @@ function drawPetalsAndCandles(time, memory) {
   const lit = Math.floor(petals.length * memory);
   for (let i = 0; i < lit; i++) {
     const pt = petals[i];
-    const x = W * (0.12 + 0.38 * pt.t) + pt.off;
-    const y = H * (0.69 - 0.09 * pt.t) + Math.sin(time + pt.p) * 1.2;
+    const [[x0, y0], [x1, y1]] = layout().path;
+    const x = W * (x0 + (x1 - x0) * pt.t) + pt.off;
+    const y = H * (y0 + (y1 - y0) * pt.t) + Math.sin(time + pt.p) * 1.2;
     ctx.fillStyle = i % 3 ? "#f2a33a" : "#e07b24";
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
   }
   for (let i = 0; i < Math.min(candles, 7); i++) {
-    const x = W * (0.44 + i * 0.02), y = H * 0.6;
+    const x = W * (layout().candles[0] + i * 0.02), y = H * layout().candles[1];
     ctx.fillStyle = "#e8e2d0"; ctx.fillRect(x, y - 10, 4, 10);
     ctx.fillStyle = "#f2a33a"; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 6 + i);
     ctx.beginPath(); ctx.arc(x + 2, y - 13, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
@@ -324,16 +333,17 @@ function drawGhost(time, memory, light) {
   game.flicker = Math.max(0, game.flicker - 0.03);
   let alpha = (0.15 + 0.75 * memory) * (0.35 + 0.65 * light);
   if (game.flicker) alpha *= 0.5 + 0.5 * Math.sin(time * 40);
-  const x = W * 0.66, y = H * 0.36 + Math.sin(time * 1.2) * 3;
+  const L = layout();
+  const x = W * L.ghostX, y = H * L.ghostY + Math.sin(time * 1.2) * 3;
 
   if (art.ghost) {
-    const gh = H * 0.5, gw = gh * art.ghost.width / art.ghost.height;
+    const gh = H * L.ghostH, gw = gh * art.ghost.width / art.ghost.height;
     const glowG = ctx.createRadialGradient(x, y + gh * 0.45, 6, x, y + gh * 0.45, gh * 0.8);
     glowG.addColorStop(0, `rgba(159,216,168,${0.4 * alpha})`);
     glowG.addColorStop(1, "rgba(159,216,168,0)");
     ctx.fillStyle = glowG; ctx.fillRect(x - gh, y - gh * 0.4, gh * 2, gh * 1.8);
     ctx.globalAlpha = alpha;
-    ctx.drawImage(art.ghost, x - gw / 2, y - gh * 0.1, gw, gh);
+    ctx.drawImage(art.ghost, x - gw / 2, y, gw, gh);
     ctx.globalAlpha = 1;
     return;
   }
