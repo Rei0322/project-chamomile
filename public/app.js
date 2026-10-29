@@ -205,6 +205,15 @@ for (const [key, file] of [["shore", "art/shore.jpg"], ["ghost", "art/ghost.png"
   img.onload = () => (art[key] = img);
   img.src = file;
 }
+// Optional looping video of the shore (art/shore.mp4). If it plays, it replaces the still painting.
+const shoreVideo = Object.assign(document.createElement("video"), { muted: true, loop: true, playsInline: true, src: "art/shore.mp4" });
+shoreVideo.addEventListener("canplay", () => { art.video = shoreVideo; shoreVideo.play().catch(() => {}); });
+
+// Living details for the painted scene.
+const rand = (a, b) => a + Math.random() * (b - a);
+const glints = Array.from({ length: 70 }, () => ({ x: rand(0.62, 0.95), y: rand(0.61, 0.9), w: rand(4, 14), p: rand(0, 6.3), v: rand(0.6, 1.6) }));
+const mist = Array.from({ length: 7 }, (_, i) => ({ x: rand(0, 1), y: rand(0.62, 0.95), r: rand(70, 150), v: rand(0.004, 0.012) * (i % 2 ? 1 : -1) }));
+const motes = Array.from({ length: 40 }, () => ({ x: rand(0.05, 0.95), y: rand(0.3, 0.95), r: rand(0.8, 2), v: rand(4, 12), p: rand(0, 6.3), gold: Math.random() < 0.4 }));
 const stars = Array.from({ length: 80 }, () => ({
   x: Math.random() * W, y: Math.random() * H * 0.45, r: Math.random() * 1.6 + 0.4, p: Math.random() * Math.PI * 2
 }));
@@ -292,7 +301,8 @@ function draw(t = 0) {
 
 // The painted version of the scene: artwork underneath, living effects on top.
 function drawPainted(time, memory, light) {
-  ctx.drawImage(art.shore, 0, 0, W, H);
+  ctx.drawImage(art.video || art.shore, 0, 0, W, H);
+  if (!art.video) { if (!isQuiet()) livePainting(time); drawWater(time); }
   // the world dims while she's forgotten and brightens as she returns
   ctx.fillStyle = `rgba(5, 8, 22, ${0.45 * (1 - memory)})`;
   ctx.fillRect(0, 0, W, H);
@@ -306,6 +316,66 @@ function drawPainted(time, memory, light) {
   ctx.globalAlpha = 1;
   drawPetalsAndCandles(time, memory);
   drawGhost(time, memory, light);
+  drawMotes(time, memory);
+  drawMist(time);
+}
+
+// Bring the still painting to life: the sea rolls in slow waves and the tall grass sways.
+// Each thin strip of the painting is nudged sideways by a gentle wave.
+function livePainting(time) {
+  const img = art.shore, k = img.width / W;
+  // sea: from the horizon down, to the right of the shore
+  for (let y = H * 0.6; y < H; y += 2) {
+    const depth = (y - H * 0.6) / (H * 0.4);              // waves grow toward the viewer
+    const dx = Math.sin(y * 0.11 - time * 1.1) * (0.6 + 2.2 * depth) + Math.sin(y * 0.031 + time * 0.5) * depth * 1.5;
+    const x0 = W * 0.46;
+    ctx.drawImage(img, x0 * k, y * k, (W - x0) * k, 2 * k, x0 + dx, y, W - x0 + 3, 2);
+  }
+  // the tall grass at the left edge bends in the sea wind; tips move most, roots stay put
+  for (let y = H * 0.62; y < H; y += 2) {
+    const tip = 1 - (y - H * 0.62) / (H * 0.38);
+    const dx = (Math.sin(time * 1.3 + y * 0.02) * 2.4 + Math.sin(time * 2.1) * 0.8) * tip * tip;
+    ctx.drawImage(img, 0, y * k, W * 0.13 * k, 2 * k, dx, y, W * 0.13, 2);
+  }
+}
+
+// Moonlight glinting on the water: little bright dashes that shimmer and drift.
+function drawWater(time) {
+  for (const g of glints) {
+    const a = Math.max(0, Math.sin(time * g.v + g.p));
+    if (a < 0.05) continue;
+    const drift = Math.sin(time * 0.3 + g.p) * 6;
+    ctx.globalAlpha = a * 0.7;
+    ctx.fillStyle = "#fff6dc";
+    ctx.fillRect(W * g.x + drift, H * g.y, g.w * (0.5 + a / 2), 1.4);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Sea mist rolling slowly across the shore.
+function drawMist(time) {
+  for (const m of mist) {
+    const x = ((m.x + time * m.v) % 1.3 + 1.3) % 1.3 - 0.15;
+    const g = ctx.createRadialGradient(W * x, H * m.y, 0, W * x, H * m.y, m.r);
+    g.addColorStop(0, "rgba(200,215,235,0.09)"); g.addColorStop(1, "rgba(200,215,235,0)");
+    ctx.fillStyle = g; ctx.fillRect(W * x - m.r, H * m.y - m.r, m.r * 2, m.r * 2);
+  }
+}
+
+// Glowing motes rising slowly; more appear as she is remembered.
+function drawMotes(time, memory) {
+  const n = Math.floor(motes.length * (0.25 + 0.75 * memory));
+  for (let i = 0; i < n; i++) {
+    const m = motes[i];
+    const y = H * m.y - ((time * m.v) % (H * 0.7));
+    const yy = y < H * 0.2 ? y + H * 0.7 : y;
+    const x = W * m.x + Math.sin(time * 0.8 + m.p) * 8;
+    const a = 0.35 + 0.45 * Math.sin(time * 2 + m.p);
+    const col = m.gold ? "242,190,110" : "180,235,190";
+    const g = ctx.createRadialGradient(x, yy, 0, x, yy, m.r * 5);
+    g.addColorStop(0, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x - m.r * 5, yy - m.r * 5, m.r * 10, m.r * 10);
+  }
 }
 
 function drawPetalsAndCandles(time, memory) {
@@ -342,8 +412,22 @@ function drawGhost(time, memory, light) {
     glowG.addColorStop(0, `rgba(159,216,168,${0.4 * alpha})`);
     glowG.addColorStop(1, "rgba(159,216,168,0)");
     ctx.fillStyle = glowG; ctx.fillRect(x - gh, y - gh * 0.4, gh * 2, gh * 1.8);
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(art.ghost, x - gw / 2, y, gw, gh);
+    // she sways and breathes, as if the sea wind moves her
+    const sway = Math.sin(time * 0.7) * 0.018, breathe = 1 + Math.sin(time * 1.1) * 0.012;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(sway);
+    ctx.scale(breathe, breathe);
+    ctx.globalAlpha = alpha * (0.88 + 0.12 * Math.sin(time * 1.7));
+    ctx.drawImage(art.ghost, -gw / 2, 0, gw, gh);
+    ctx.restore();
+    // mist curling at her hem
+    for (let i = 0; i < 4; i++) {
+      const hx = x + Math.sin(time * 0.9 + i * 1.7) * gw * 0.35, hy = y + gh * (0.9 + 0.04 * Math.sin(time + i));
+      const hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, gw * 0.45);
+      hg.addColorStop(0, `rgba(190,235,200,${0.18 * alpha})`); hg.addColorStop(1, "rgba(190,235,200,0)");
+      ctx.fillStyle = hg; ctx.fillRect(hx - gw * 0.45, hy - gw * 0.45, gw * 0.9, gw * 0.9);
+    }
     ctx.globalAlpha = 1;
     return;
   }
