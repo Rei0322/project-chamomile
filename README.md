@@ -48,12 +48,26 @@ NOTES.md           Build diary (becomes the DEV write-up)
 - **Gentle mode** turns off the fading timer, so nobody is rushed.
 - **Quiet mode** (on automatically if your device prefers reduced motion) stops the twinkling stars and the tide.
 
-## Credits
+## Built with (and credits)
 
-- "Annabel Lee" by Edgar Allan Poe (1849), public domain.
-- Gemma by Google DeepMind, run with Ollama (local) or Google's Gemma API (hosted).
-- Inspired by Día de los Muertos and the idea, as in *Coco*, that the dead stay with us while we remember them.
-- Built by [Samira Ray](https://samira-ray.dev).
+Everything this project uses, so it's all traceable.
+
+| What | Used for |
+|---|---|
+| **Gemma** (Google DeepMind, open-weight) | Annabel Lee's voice. Runs locally through **Ollama** (`gemma3:4b` at home, `gemma3:1b` in Codespaces), or through **Google's Gemma API** on the hosted site. |
+| **Ollama** | Serving Gemma on your own machine, so the candle name never leaves it. |
+| **ElevenLabs** | The poem read aloud, stanza by stanza (the lover's voice). Voice by ElevenLabs. |
+| **kingdombythesea.tech** | The project's home, a .tech domain claimed through Hacktoberfest. |
+| **Kittl** (Nano Banana Pro) | Generating the Flash-style shore and ghost art. |
+| **The Met, fashion plate** | Annabel's gown is based on *Le Follet*, April 1849 (the year the poem was published), from The Metropolitan Museum of Art's fashion plate collection. |
+| **GitHub Codespaces** | Building and testing in the cloud during the week. |
+| **Claude (Anthropic)** | AI pair-programming help with the code. |
+| **Node.js + Express**, HTML canvas | The game itself: no Flash, no game engine. |
+
+The poem: "Annabel Lee" by Edgar Allan Poe (1849), public domain.
+Inspired by Día de los Muertos and the idea, as in *Coco*, that the dead stay with us while we remember them; and by Annabel Blackthorn in Cassandra Clare's *Lady Midnight*, which first led me to the poem.
+
+Built by [Samira Ray](https://samira-ray.dev).
 
 ## License
 
