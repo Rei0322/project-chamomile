@@ -29,7 +29,7 @@ The ending asks for the name of someone you loved. That name goes to a model on 
 5. Visit http://localhost:3000
 
 ### Hosted (Gemma through Google's API)
-Set `GEMMA_API_KEY` (from Google AI Studio) and optionally `GEMMA_API_MODEL` (default `gemma-3-4b-it`). The server then calls Gemma through Google instead of Ollama. If no model answers at all, the ghost speaks prepared lines (marked ✦) so the game still works.
+Set `GEMMA_API_KEY` (from Google AI Studio) and optionally `GEMMA_API_MODEL` (default `gemma-4-26b-a4b-it`; Google no longer serves Gemma 3 on its API). The server then calls Gemma through Google instead of Ollama. If no model answers at all, the ghost speaks prepared lines (marked ✦) so the game still works.
 
 ### Tracing with Sentry (optional)
 Set `SENTRY_DSN` before starting:

@@ -16,7 +16,9 @@ const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 // gemma3:1b in Codespaces (fast on CPU), gemma3:4b at home for the real demo.
 let MODEL = process.env.CHAMOMILE_MODEL || "gemma3:1b";
 const GEMMA_API_KEY = process.env.GEMMA_API_KEY || "";
-const GEMMA_API_MODEL = process.env.GEMMA_API_MODEL || "gemma-3-4b-it";
+// Google retired Gemma 3 from its hosted API in 2026; Gemma 4 is what it serves now.
+// gemma-4-26b-a4b-it is a mixture-of-experts model with about 4B parameters active, so it's quick.
+const GEMMA_API_MODEL = process.env.GEMMA_API_MODEL || "gemma-4-26b-a4b-it";
 const PROVIDER = GEMMA_API_KEY ? "google" : "ollama";
 
 const app = express();
@@ -90,10 +92,11 @@ async function askGoogle(userMessage) {
       generationConfig: { temperature: 0.8, maxOutputTokens: 200 }
     })
   });
-  if (!r.ok) throw new Error(`Gemma API responded ${r.status}`);
+  if (!r.ok) throw new Error(`Gemma API responded ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const data = await r.json();
   return {
-    text: data.candidates?.[0]?.content?.parts?.map(p => p.text).join("").trim(),
+    // skip any "thinking" parts; keep only what she actually says
+    text: data.candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text || "").join("").trim(),
     inTokens: data.usageMetadata?.promptTokenCount, outTokens: data.usageMetadata?.candidatesTokenCount
   };
 }
