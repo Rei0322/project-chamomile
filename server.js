@@ -13,7 +13,7 @@ const { TITLE, AUTHOR, STANZAS, FALLBACK } = require("./data/poem");
 const PORT = process.env.PORT || 3000;
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 // gemma3:1b in Codespaces (fast on CPU), gemma3:4b at home for the real demo.
-const MODEL = process.env.CHAMOMILE_MODEL || "gemma3:1b";
+let MODEL = process.env.CHAMOMILE_MODEL || "gemma3:1b";
 const GEMMA_API_KEY = process.env.GEMMA_API_KEY || "";
 const GEMMA_API_MODEL = process.env.GEMMA_API_MODEL || "gemma-3-4b-it";
 const PROVIDER = GEMMA_API_KEY ? "google" : "ollama";
@@ -150,6 +150,20 @@ app.post("/api/candle", rateLimit, async (req, res) => {
   }
 });
 
+// If the chosen model isn't installed, use whichever Gemma Ollama does have.
+async function pickInstalledGemma() {
+  if (PROVIDER !== "ollama") return;
+  try {
+    const tags = await fetch(`${OLLAMA_URL}/api/tags`).then(r => r.json());
+    const names = (tags.models || []).map(m => m.name);
+    if (!names.includes(MODEL)) {
+      const gemma = names.find(n => n.startsWith("gemma"));
+      if (gemma) { console.log(`   ${MODEL} isn't installed; using ${gemma} instead`); MODEL = gemma; }
+      else console.log(`   No Gemma model found in Ollama. Run: ollama pull gemma3:1b`);
+    }
+  } catch { console.log("   Ollama isn't answering yet; the ghost will use prepared lines until it does."); }
+}
+
 // Locally (npm start) we listen on a port. On Vercel, the exported app is the handler.
 if (require.main === module) {
   app.listen(PORT, () => {
@@ -157,6 +171,7 @@ if (require.main === module) {
     console.log(PROVIDER === "google"
       ? `   Gemma via Google's API (${GEMMA_API_MODEL})`
       : `   Gemma via Ollama (${MODEL} at ${OLLAMA_URL})`);
+    pickInstalledGemma();
   });
 }
 
