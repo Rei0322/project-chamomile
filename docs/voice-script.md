@@ -84,7 +84,7 @@ stanza4-b.mp3
 [long pause] [anguished] [voice breaking] Chilling and killing my Annabel Lee.
 
 2 - Annabel Narrator
-[closer, softly, steady] …I'm still here, my love.
+[closer, soothing, sweetly, steady] …I'm still here, my love.
 
 ==============================
 stanza5-a.mp3
