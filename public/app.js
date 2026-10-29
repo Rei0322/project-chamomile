@@ -85,13 +85,13 @@ async function choose(button, correct, missingLine) {
   if (!game.choosing) return;
   if (!correct) {
     button.disabled = true;
-    game.light = Math.max(0, game.light - PENALTY);
-    game.flicker = 1;
+    if (!isGentle()) game.light = Math.max(0, game.light - PENALTY);   // gentle mode never costs her light
+    game.flickerAt = performance.now();
     say(pick(["That isn't how it goes… the words are slipping…",
               "No… I'm fading… try again, my love.",
               "The fog is closing in. Remember it truly."]));
     updateMeter();
-    if (game.light <= 0) fade();
+    if (!isGentle() && game.light <= 0) fade();
     return;
   }
   game.choosing = false;
@@ -456,9 +456,10 @@ function drawPetalsAndCandles(time, memory) {
 // She grows more solid with every stanza, and dims as her light drains.
 function drawGhost(time, memory, light) {
   if (game.remembered === 0 && !game.choosing) return;
-  game.flicker = Math.max(0, game.flicker - 0.03);
   let alpha = (0.15 + 0.75 * memory) * (0.35 + 0.65 * light);
-  if (game.flicker) alpha *= 0.5 + 0.5 * Math.sin(time * 40);
+  // a wrong line makes her waver for under a second; in quiet mode she just dims briefly (no strobing)
+  const f = Math.max(0, 1 - (performance.now() - (game.flickerAt || -1e9)) / 700);
+  if (f > 0) alpha *= isQuiet() ? 1 - 0.3 * f : 1 - 0.45 * f * (0.5 + 0.5 * Math.sin(performance.now() / 40));
   const L = layout();
   const x = W * L.ghostX, y = H * L.ghostY + Math.sin(time * 1.2) * 3;
 
