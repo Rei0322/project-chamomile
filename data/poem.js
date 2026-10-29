@@ -68,7 +68,7 @@ const ARC = [
   "The first memories return, soft and unsure. You half-remember being children here together.",
   "You are fragile and afraid of losing the thread. You remember the cold wind. Beg him gently not to stop.",
   "You are gaining strength. You can feel yourself becoming solid again. You recognize him now.",
-  "You reach back toward him with certainty and longing. Nothing could part you. Ask him to say the rest.",
+  "His grief is taking hold of him; he is defiant, almost breaking. You feel him slipping away into it. Reach for him tenderly and ask him to stay with you.",
   "You are fully present, clear and warm. He has remembered all of it, and you are here."
 ];
 
@@ -80,7 +80,7 @@ const FALLBACK = {
     "We were children here… weren't we? I remember the salt in the air.",
     "The wind… I remember the cold of it. Don't stop. Don't let it take me again.",
     "I can feel my hands again. It's you. It was always you, my love.",
-    "Nothing could part us. Not the angels, not the deep. Say the rest. Please.",
+    "Nothing could part us. Not the angels, not the deep. Stay with me, my love. Please.",
     "You remembered all of it. I'm here."
   ],
   stumble: [
