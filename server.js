@@ -83,22 +83,31 @@ async function askOllama(userMessage) {
 
 async function askGoogle(userMessage) {
   // Gemma on Google's API has no separate system role, so the character goes first.
+  // Gemma 4 "thinks" before it speaks unless told not to, and the thinking can use up the whole reply,
+  // leaving her nothing to say. MINIMAL keeps it brief; if the API ever rejects that setting, we retry without it.
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMMA_API_MODEL}:generateContent`;
-  const r = await fetch(url, {
+  const call = async thinking => fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": GEMMA_API_KEY },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: `${SYSTEM_PROMPT}\n\n---\n\n${userMessage}` }] }],
-      generationConfig: { temperature: 0.8, maxOutputTokens: 1024 }   // room in case the model thinks before it speaks
+      generationConfig: { temperature: 0.8, maxOutputTokens: 1024, ...(thinking && { thinkingConfig: { thinkingLevel: "MINIMAL" } }) }
     })
   });
+  let r = await call(true);
+  if (r.status === 400) r = await call(false);
   if (!r.ok) throw new Error(`Gemma API responded ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const data = await r.json();
-  return {
-    // skip any "thinking" parts; keep only what she actually says
-    text: data.candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text || "").join("").trim(),
-    inTokens: data.usageMetadata?.promptTokenCount, outTokens: data.usageMetadata?.candidatesTokenCount
-  };
+  const cand = data.candidates?.[0], parts = cand?.content?.parts || [];
+  // keep only what she actually says, never the thinking
+  const text = parts.filter(p => !p.thought).map(p => p.text || "").join("").trim();
+  if (!text) {
+    const u = data.usageMetadata || {};
+    // no words from the reply here, just the shape of it, so the logs say why it came back empty
+    throw new Error(`Empty reply from Gemma (finish ${cand?.finishReason}, ${parts.length} parts, ` +
+      `${parts.filter(p => p.thought).length} thought, thinking tokens ${u.thoughtsTokenCount ?? 0}, output tokens ${u.candidatesTokenCount ?? 0})`);
+  }
+  return { text, inTokens: data.usageMetadata?.promptTokenCount, outTokens: data.usageMetadata?.candidatesTokenCount };
 }
 
 // Every call to Gemma is one traced span: which model, how long, how many tokens. Never the text.
