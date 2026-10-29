@@ -145,7 +145,9 @@ function fade() {
 
 function reset() {
   Object.assign(game, { stanza: 0, remembered: 0, light: START_LIGHT, choosing: false, over: false });
-  bed.faded = false; mixBed(3000);
+  bed.faded = false;
+  if (bed.started && $("sound").checked) { bed.early.currentTime = 0; bed.early.play().catch(() => {}); }
+  mixBed(3000);
   $("again").hidden = true;
   $("candle").hidden = true;
   say("");
@@ -173,12 +175,14 @@ function updateMeter() {
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
 // ---------- Background: waves and music ----------
-// audio/waves.mp3 loops quietly under everything. audio/music.mp3 is the emotional bed: it dips while
-// a voice is speaking, rises between lines, and grows a little fuller with each stanza she remembers.
+// audio/waves.mp3 loops quietly under everything. The music is the emotional bed: music-early.mp3
+// (wistful, stanzas 1-3) crossfades into music-late.mp3 (the grief taking hold, stanzas 4-6).
+// It dips while a voice is speaking, rises between lines, and grows a little fuller with each stanza.
 // audio/swell.mp3 plays once when she fully returns. Any missing file is simply skipped.
 const bed = {
   waves: Object.assign(new Audio("audio/waves.mp3"), { loop: true, volume: 0 }),
-  music: Object.assign(new Audio("audio/music.mp3"), { loop: true, volume: 0 }),
+  early: Object.assign(new Audio("audio/music-early.mp3"), { loop: true, volume: 0 }),
+  late: Object.assign(new Audio("audio/music-late.mp3"), { loop: true, volume: 0 }),
   speaking: 0, started: false, faded: false
 };
 const WAVES_VOL = 0.22, DUCKED = 0.35;   // music under a voice plays at 35% of its level
@@ -192,20 +196,25 @@ function rampTo(a, target, ms = 1200) {
     if (k === 1) clearInterval(a._ramp);
   }, 50);
 }
+const LATE_FROM = 3;   // once 3 stanzas are remembered (stanza 4 begins), the grief takes hold
+const tracks = () => [bed.waves, bed.early, bed.late];
 function mixBed(ms) {
   if (!bed.started) return;
+  const level = musicLevel() * (bed.speaking ? DUCKED : 1), late = game.remembered >= LATE_FROM;
   rampTo(bed.waves, WAVES_VOL, ms);
-  rampTo(bed.music, musicLevel() * (bed.speaking ? DUCKED : 1), ms);
+  rampTo(bed.early, late ? 0 : level, late ? Math.max(ms, 4000) : ms);
+  rampTo(bed.late, late ? level : 0, late ? Math.max(ms, 4000) : ms);
+  if (late && bed.late.paused && $("sound").checked) bed.late.play().catch(() => {});
 }
 function startBed() {
   if (bed.started || !$("sound").checked) return;
   bed.started = true;
-  for (const a of [bed.waves, bed.music]) a.play().catch(() => {});
+  for (const a of [bed.waves, bed.early]) a.play().catch(() => {});
   mixBed(3000);
 }
 $("sound").addEventListener("change", () => {
-  if ($("sound").checked) { if (bed.started) { for (const a of [bed.waves, bed.music]) a.play().catch(() => {}); mixBed(1500); } else startBed(); }
-  else for (const a of [bed.waves, bed.music]) a.pause();
+  if ($("sound").checked) { if (bed.started) { for (const a of tracks()) if (a !== bed.late || game.remembered >= LATE_FROM) a.play().catch(() => {}); mixBed(1500); } else startBed(); }
+  else for (const a of tracks()) a.pause();
 });
 
 // The poem read aloud (audio/stanza1.mp3 ... stanza6.mp3). Resolves when the reading ends,
