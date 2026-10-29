@@ -57,7 +57,7 @@ stanza3-a.mp3
 [slowly] [somber] And this was the reason that, long ago, In this kingdom by the sea, [short pause] A wind blew out of a cloud, chilling [voice breaking] My beautiful Annabel Lee;
 
 2 - Annabel Narrator
-[faint, frightened whisper] …so cold…
+[faint, frightened whisper] …the wind…
 
 3 - Poe Narrator
 [slowly] [with quiet intensity] So that her highborn kinsmen came And bore her away from me, [short pause] [bitterly] To shut her up in a sepulchre
@@ -69,7 +69,7 @@ stanza3-b.mp3
 [slowly] [bitterly] In this kingdom by the sea.
 
 2 - Annabel Narrator
-[soft, pleading whisper] …don't stop…
+[soft, unsure whisper] …is it you?
 
 ==============================
 stanza4-a.mp3   (Poe Narrator only)
