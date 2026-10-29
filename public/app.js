@@ -126,7 +126,6 @@ async function returned() {
   game.over = true;
   game.light = 100;
   updateMeter();
-  playClip("swell");
   const g = await ghost({ event: "returned" });
   say(g.answer, g.offline);
   $("candle").hidden = false;
@@ -150,6 +149,10 @@ function reset() {
   mixBed(3000);
   $("again").hidden = true;
   $("candle").hidden = true;
+  $("credits").hidden = true;
+  candles = 0;
+  $("roll").hidden = true;
+  askForName("Light a candle for someone you remember:");
   say("");
   updateMeter();
   showStanza();
@@ -276,20 +279,59 @@ $("begin").addEventListener("click", () => { $("intro").hidden = true; startBed(
 $("next").addEventListener("click", showStanza);
 $("again").addEventListener("click", reset);
 
+// Light a candle (two at most), then roll the credits to the swell.
+// Other visitors' candles are already burning at her tomb; yours joins them and stays lit.
+// The name is never shown again or saved: only the candle stays.
+const MAX_CANDLES = 2, OTHERS = 4;
+const candleForm = () => ({ input: $("name"), light: $("candle").querySelector('button[type="submit"]'), label: $("candle").querySelector("label") });
+function askForName(text) {
+  const f = candleForm();
+  f.label.textContent = text;
+  for (const el of [f.input, f.light, f.label]) el.hidden = false;
+  $("another").hidden = true;
+  f.input.focus({ preventScroll: true });
+}
 $("candle").addEventListener("submit", async e => {
   e.preventDefault();
-  const input = $("name");
-  const name = input.value.trim();
-  if (!name) return;
+  const f = candleForm();
+  const name = f.input.value.trim();
+  if (!name || candles >= MAX_CANDLES) return;
   say("🕯️ …");
   const g = await fetch("/api/candle", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name })
   }).then(r => r.json()).catch(() => ({ answer: `The candle is lit for ${name}.`, offline: true }));
   say(g.answer, g.offline);
   candles++;
-  input.value = "";
+  candleLitAt = performance.now();
+  f.input.value = "";
+  for (const el of [f.input, f.light]) el.hidden = true;
+  f.label.hidden = false;
+  f.label.textContent = candles < MAX_CANDLES ? "Would you like to light another?" : "Your candles will stay lit by the sea.";
+  $("another").hidden = candles >= MAX_CANDLES;
+  $("roll").hidden = false;
+  ($("another").hidden ? $("roll") : $("another")).focus({ preventScroll: true });
 });
-let candles = 0;
+$("another").addEventListener("click", () => askForName("Light another candle for someone you remember:"));
+let candles = 0, candleLitAt = -1e9;
+
+$("roll").addEventListener("click", rollCredits);
+async function rollCredits() {
+  $("candle").hidden = true;
+  say("");   // the remembrance (and the name in it) leaves the screen; only the candles stay
+  const box = $("credits"), roll = box.querySelector(".roll");
+  $("c-candles").hidden = !candles;
+  box.classList.toggle("still", isQuiet());
+  roll.style.animation = "none"; void roll.offsetWidth; roll.style.animation = "";
+  box.style.setProperty("--h", box.clientHeight + "px");
+  box.hidden = false;
+  box.style.setProperty("--h", box.clientHeight + "px");
+  bed.faded = true; mixBed(3000);               // the music bows out; the swell takes over, the sea stays
+  const ROLL_MS = 24000;
+  box.style.setProperty("--roll", ROLL_MS / 1000 + "s");
+  await Promise.all([playClip("swell"), new Promise(r => setTimeout(r, isQuiet() ? 2000 : ROLL_MS))]);
+  $("again").hidden = false;
+  $("again").focus({ preventScroll: true });
+}
 
 // ---------- The scene ----------
 const canvas = $("scene");
@@ -422,13 +464,7 @@ function draw(t = 0) {
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
   }
 
-  // candles lit at the end
-  for (let i = 0; i < Math.min(candles, 7); i++) {
-    const x = W * (layout().candles[0] + i * 0.02), y = H * layout().candles[1];
-    ctx.fillStyle = "#e8e2d0"; ctx.fillRect(x, y - 10, 4, 10);
-    ctx.fillStyle = "#f2a33a"; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 6 + i);
-    ctx.beginPath(); ctx.arc(x + 2, y - 13, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-  }
+  drawCandles(time);
 
   drawGhost(time, memory, light);
 
@@ -549,11 +585,26 @@ function drawPetalsAndCandles(time, memory) {
     ctx.fillStyle = i % 3 ? "#f2a33a" : "#e07b24";
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, Math.PI * 2); ctx.fill();
   }
-  for (let i = 0; i < Math.min(candles, 7); i++) {
-    const x = W * (layout().candles[0] + i * 0.02), y = H * layout().candles[1];
-    ctx.fillStyle = "#e8e2d0"; ctx.fillRect(x, y - 10, 4, 10);
-    ctx.fillStyle = "#f2a33a"; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 6 + i);
-    ctx.beginPath(); ctx.arc(x + 2, y - 13, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  drawCandles(time);
+}
+
+// Candles at her tomb: a few left by other visitors, plus the ones you light (they flare as they catch).
+const CANDLE_SPOTS = [[0, 0, 9], [0.022, -0.012, 7], [0.041, 0.004, 10], [0.063, -0.006, 8], [0.03, 0.022, 11], [0.052, 0.02, 9]];
+function drawCandles(time) {
+  const [cx, cy] = layout().candles;
+  const total = Math.min(OTHERS + candles, CANDLE_SPOTS.length);
+  for (let i = 0; i < total; i++) {
+    const [dx, dy, h] = CANDLE_SPOTS[i];
+    const x = W * (cx + dx), y = H * (cy + dy);
+    const mine = i >= OTHERS, newest = mine && i === total - 1;
+    const flare = newest ? Math.max(0, 1 - (performance.now() - candleLitAt) / 1500) : 0;
+    ctx.fillStyle = "#e8e2d0"; ctx.fillRect(x, y - h, 4, h);
+    const flicker = isQuiet() ? 0.9 : 0.75 + 0.25 * Math.sin(time * 6 + i * 1.7);
+    ctx.globalAlpha = 0.25 * flicker + 0.4 * flare;
+    ctx.fillStyle = "#f2a33a"; ctx.beginPath(); ctx.arc(x + 2, y - h - 3, 8 + 10 * flare, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = flicker;
+    ctx.beginPath(); ctx.ellipse(x + 2, y - h - 3, 2.2, 3.4 + flare * 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
   }
 }
 

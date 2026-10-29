@@ -15,8 +15,28 @@
   </div>
 
   <main id="stage" hidden>
-    <canvas id="scene" width="1600" height="900"
-      aria-label="A moonlit shore with a sepulchre by the sea. A pale green ghost appears as she is remembered."></canvas>
+    <div class="scene-wrap">
+      <canvas id="scene" width="1600" height="900"
+        aria-label="A moonlit shore with a sepulchre by the sea. A pale green ghost appears as she is remembered."></canvas>
+      <div id="credits" hidden aria-live="polite">
+        <div class="roll">
+          <p class="c-title">A Kingdom by the Sea</p>
+          <p class="c-sub">"Annabel Lee" by Edgar Allan Poe, 1849</p>
+          <p id="c-candles" hidden>🕯️ Your candles stay lit by the sea.</p>
+          <h3>Made by</h3><p>Samira Ray</p>
+          <h3>Voices</h3><p>Poe Narrator &amp; Annabel Narrator,<br>designed with ElevenLabs</p>
+          <h3>Music &amp; the sea</h3><p>ElevenLabs Music &amp; Sound Effects</p>
+          <h3>Annabel's words</h3><p>Gemma by Google, run with Ollama</p>
+          <h3>Art</h3><p>Kittl with Nano Banana Pro<br>Her gown after <i>Le Follet</i>, April 1849,<br>from The Metropolitan Museum of Art</p>
+          <h3>Watching over the ghost</h3><p>Sentry</p>
+          <h3>Hosted by</h3><p>DigitalOcean at kingdombythesea.tech</p>
+          <h3>Pair programmer</h3><p>Claude</p>
+          <h3>Built with</h3><p>Node, Express and an HTML canvas.<br>No Flash. No game engine.</p>
+          <h3>Inspired by</h3><p><i>Coco</i> and Cassandra Clare's <i>Lady Midnight</i></p>
+          <p class="c-end">While someone remembers us,<br>we are never truly gone.</p>
+        </div>
+      </div>
+    </div>
 
     <!-- How much of her is still here -->
     <div class="meter-wrap">
@@ -45,6 +65,8 @@
         <label for="name">Light a candle for someone you remember:</label>
         <input id="name" maxlength="60" autocomplete="off" placeholder="a name…" />
         <button type="submit">🕯️ Light</button>
+        <button type="button" id="another" hidden>🕯️ Light another</button>
+        <button type="button" id="roll" hidden>🌙 Roll credits</button>
         <small id="privacy">The name is spoken once to Gemma to write the remembrance and is never saved.</small>
       </form>
     </section>

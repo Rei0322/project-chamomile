@@ -57,3 +57,19 @@ button.big { margin-top: .6rem; }
 .toggles { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: .6rem; font-size: .85rem; opacity: .85; }
 
 @media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
+
+/* ---------- Credits ---------- */
+.scene-wrap { position: relative; }
+#credits { position: absolute; inset: 3px; overflow: hidden; background: rgba(5,8,26,.72);
+  font-family: Georgia, serif; text-align: center; color: var(--ink); animation: creditsIn 1.5s ease both; }
+#credits .roll { position: absolute; left: 0; right: 0; top: 100%; padding: 0 1rem; animation: roll var(--roll, 24s) linear forwards; }
+#credits h3 { margin: 1.1rem 0 .15rem; font: italic .8rem Verdana, Tahoma, sans-serif; letter-spacing: .08em; color: var(--ghost); text-transform: uppercase; }
+#credits p { margin: 0; font-size: clamp(.8rem, 2.2vw, 1rem); line-height: 1.4; }
+#credits .c-title { font-style: italic; font-size: clamp(1.3rem, 4vw, 2rem); color: var(--ghost); text-shadow: 0 0 10px rgba(159,216,168,.5); }
+#credits .c-sub { opacity: .8; }
+#c-candles { margin-top: 1rem; color: var(--marigold); }
+#credits .c-end { margin: 2rem 0 0; font-style: italic; color: var(--ghost); }
+@keyframes roll { to { transform: translateY(calc(-100% - var(--h, 450px))); } }
+@keyframes creditsIn { from { opacity: 0; } }
+#credits.still .roll { position: static; animation: none; padding: 1rem; }
+#credits.still { overflow-y: auto; }
