@@ -370,13 +370,24 @@ function drawPainted(time, memory, light) {
 function livePainting(time) {
   const img = pic("shore"), k = img.width / W;
   // sea: from the horizon down, to the right of the shore
-  for (let y = H * 0.6; y < H; y += 2) {
-    const depth = (y - H * 0.6) / (H * 0.4);              // waves grow toward the viewer
-    const dx = Math.sin(y * 0.11 - time * 1.1) * (0.6 + 2.2 * depth) + Math.sin(y * 0.031 + time * 0.5) * depth * 1.5;
-    const x0 = W * 0.46;
-    ctx.drawImage(img, x0 * k, y * k, (W - x0) * k, 2 * k, x0 + dx, y, W - x0 + 3, 2);
+  // sea: thin vertical slices bob up and down, so the flat color bands roll like waves
+  const sea0 = H * 0.61;
+  for (let x = W * 0.47; x < W; x += 3) {
+    const dy = Math.sin(x * 0.045 - time * 1.6) * 2.2 + Math.sin(x * 0.013 + time * 0.7) * 1.6;
+    ctx.drawImage(art.shore, x * k, sea0 * k, 3 * k, (H - sea0) * k, x, sea0 + dy, 3, H - sea0);
   }
-  // the tall grass at the left edge bends in the sea wind; tips move most, roots stay put
+  // Flash-style crest lines drifting across the water
+  ctx.strokeStyle = "rgba(190,215,255,0.35)"; ctx.lineWidth = 1.5;
+  for (let r = 0; r < 6; r++) {
+    const y = H * (0.67 + r * 0.055), speed = 12 + r * 6, len = 26 + r * 8;
+    for (let c = 0; c < 5; c++) {
+      const x = W * 0.5 + (((c * 97 + time * speed) % (W * 0.55)));
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + len / 2, y - 3 - r * 0.4, x + len, y);
+      ctx.stroke();
+    }
+  }
   for (let y = H * 0.62; y < H; y += 2) {
     const tip = 1 - (y - H * 0.62) / (H * 0.38);
     const dx = (Math.sin(time * 1.3 + y * 0.02) * 2.4 + Math.sin(time * 2.1) * 0.8) * tip * tip;
