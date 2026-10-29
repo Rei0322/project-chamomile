@@ -126,6 +126,7 @@ async function returned() {
   game.over = true;
   game.light = 100;
   updateMeter();
+  playClip("swell");
   const g = await ghost({ event: "returned" });
   say(g.answer, g.offline);
   $("candle").hidden = false;
@@ -135,6 +136,7 @@ function fade() {
   game.choosing = false;
   game.over = true;
   $("choices").hidden = true;
+  bed.faded = true; mixBed(4000);
   playClip("faded");
   say("Her light goes out, and the sea takes her back. No one remembered her in time… but memory can always call her again.");
   $("again").hidden = false;
@@ -143,6 +145,7 @@ function fade() {
 
 function reset() {
   Object.assign(game, { stanza: 0, remembered: 0, light: START_LIGHT, choosing: false, over: false });
+  bed.faded = false; mixBed(3000);
   $("again").hidden = true;
   $("candle").hidden = true;
   say("");
@@ -169,6 +172,42 @@ function updateMeter() {
 
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
+// ---------- Background: waves and music ----------
+// audio/waves.mp3 loops quietly under everything. audio/music.mp3 is the emotional bed: it dips while
+// a voice is speaking, rises between lines, and grows a little fuller with each stanza she remembers.
+// audio/swell.mp3 plays once when she fully returns. Any missing file is simply skipped.
+const bed = {
+  waves: Object.assign(new Audio("audio/waves.mp3"), { loop: true, volume: 0 }),
+  music: Object.assign(new Audio("audio/music.mp3"), { loop: true, volume: 0 }),
+  speaking: 0, started: false, faded: false
+};
+const WAVES_VOL = 0.22, DUCKED = 0.35;   // music under a voice plays at 35% of its level
+const musicLevel = () => bed.faded ? 0 : Math.min(0.42, 0.16 + 0.045 * game.remembered);
+function rampTo(a, target, ms = 1200) {
+  clearInterval(a._ramp);
+  const from = a.volume, t0 = performance.now();
+  a._ramp = setInterval(() => {
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    a.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+    if (k === 1) clearInterval(a._ramp);
+  }, 50);
+}
+function mixBed(ms) {
+  if (!bed.started) return;
+  rampTo(bed.waves, WAVES_VOL, ms);
+  rampTo(bed.music, musicLevel() * (bed.speaking ? DUCKED : 1), ms);
+}
+function startBed() {
+  if (bed.started || !$("sound").checked) return;
+  bed.started = true;
+  for (const a of [bed.waves, bed.music]) a.play().catch(() => {});
+  mixBed(3000);
+}
+$("sound").addEventListener("change", () => {
+  if ($("sound").checked) { if (bed.started) { for (const a of [bed.waves, bed.music]) a.play().catch(() => {}); mixBed(1500); } else startBed(); }
+  else for (const a of [bed.waves, bed.music]) a.pause();
+});
+
 // The poem read aloud (audio/stanza1.mp3 ... stanza6.mp3). Resolves when the reading ends,
 // or right away if sound is off or the file isn't there.
 // When each shown line appears during part A: exact times from audio/timings.json if present,
@@ -191,12 +230,13 @@ function playClip(name, onStart) {
   const take = new URLSearchParams(location.search).get(`take-${name}`);   // testing: ?take-stanza3-a=2
   return new Promise(done => {
     const a = new Audio(`audio/${name}${take ? `-take${take}` : ""}.mp3`);
-    let started = false;
-    const cap = setTimeout(() => done(started), 60000);
-    a.addEventListener("playing", () => { if (!started) { started = true; onStart && onStart(a.duration || 10); } });
-    a.addEventListener("ended", () => { clearTimeout(cap); done(true); });
-    a.addEventListener("error", () => { clearTimeout(cap); done(false); });
-    a.play().catch(() => { clearTimeout(cap); done(false); });
+    let started = false, finished = false;
+    const finish = ok => { if (finished) return; finished = true; clearTimeout(cap); if (started) { bed.speaking--; mixBed(1500); } done(ok); };
+    const cap = setTimeout(() => finish(started), 60000);
+    a.addEventListener("playing", () => { if (!started) { started = true; bed.speaking++; mixBed(600); onStart && onStart(a.duration || 10); } });
+    a.addEventListener("ended", () => finish(true));
+    a.addEventListener("error", () => finish(false));
+    a.play().catch(() => finish(false));
   });
 }
 
@@ -223,7 +263,7 @@ async function ghost(body) {
   } catch { return { answer: "…", offline: true }; }
 }
 
-$("begin").addEventListener("click", () => { $("intro").hidden = true; showStanza(); });
+$("begin").addEventListener("click", () => { $("intro").hidden = true; startBed(); showStanza(); });
 $("next").addEventListener("click", showStanza);
 $("again").addEventListener("click", reset);
 
