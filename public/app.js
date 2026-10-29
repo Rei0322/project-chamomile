@@ -185,7 +185,7 @@ const bed = {
   late: Object.assign(new Audio("audio/music-late.mp3"), { loop: true, volume: 0 }),
   speaking: 0, started: false, faded: false
 };
-const WAVES_VOL = 0.22, DUCKED = 0.35;   // music under a voice plays at 35% of its level
+const WAVES_VOL = 0.5, DUCKED = 0.35;   // music under a voice plays at 35% of its level
 const musicLevel = () => bed.faded ? 0 : Math.min(0.42, 0.16 + 0.045 * game.remembered);
 function rampTo(a, target, ms = 1200) {
   clearInterval(a._ramp);
