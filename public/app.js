@@ -6,6 +6,8 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const $ = id => document.getElementById(id);
 const quietBox = $("quiet"), gentleBox = $("gentle");
 quietBox.checked = reducedMotion.matches;
+const vintageBox = $("vintage");
+const isVintage = () => vintageBox.checked;
 const isQuiet = () => quietBox.checked;
 const isGentle = () => gentleBox.checked;
 
@@ -202,9 +204,46 @@ const layout = () => (art.shore ? LAYOUT.painted : LAYOUT.drawn);
 const art = {};
 for (const [key, file] of [["shore", "art/shore.jpg"], ["ghost", "art/ghost.png"]]) {
   const img = new Image();
-  img.onload = () => (art[key] = img);
+  img.onload = () => { art[key] = img; art[key + "Vintage"] = vintageCopy(img); };
   img.src = file;
 }
+// A 2000s-web version of an image: fewer colors with ordered dithering, like an old GIF.
+function vintageCopy(img) {
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const x = c.getContext("2d"); x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), px = d.data;
+  const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  const levels = 6, step = 255 / (levels - 1);
+  for (let i = 0; i < px.length; i += 4) {
+    const p = i / 4, bx = p % c.width, by = (p / c.width) | 0;
+    const t = (bayer[(by % 4) * 4 + (bx % 4)] / 16 - 0.5) * step;
+    for (let ch = 0; ch < 3; ch++) px[i + ch] = Math.round((px[i + ch] + t) / step) * step;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+const pic = key => (isVintage() && art[key + "Vintage"]) || art[key];
+
+// Film grain + faint scanlines + vignette, drawn over everything in vintage mode.
+const grain = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const x = c.getContext("2d"), d = x.createImageData(128, 128);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 22; }
+  x.putImageData(d, 0, 0); return c;
+})();
+function drawVintageOverlay(time) {
+  ctx.save();
+  ctx.translate(-((time * 97) % 128), -((time * 61) % 128));
+  ctx.fillStyle = ctx.createPattern(grain, "repeat");
+  ctx.fillRect(0, 0, W + 128, H + 128);
+  ctx.restore();
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
+  for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, W * 0.65);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.35)");
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+}
+
 // Optional looping video of the shore (art/shore.mp4). If it plays, it replaces the still painting.
 const shoreVideo = Object.assign(document.createElement("video"), { muted: true, loop: true, playsInline: true, src: "art/shore.mp4" });
 shoreVideo.addEventListener("canplay", () => { art.video = shoreVideo; shoreVideo.play().catch(() => {}); });
@@ -222,8 +261,13 @@ const petals = Array.from({ length: 48 }, (_, i) => ({
   t: i / 48, off: (Math.random() - 0.5) * 26, r: Math.random() * 2 + 2, p: Math.random() * Math.PI * 2
 }));
 
+const FPS = 12;   // Flash games often ran at 12 frames a second: motion in little steps
+let lastStep = -1;
 function draw(t = 0) {
-  const time = isQuiet() ? 0 : t / 1000;
+  const step = Math.floor(t / 1000 * FPS);
+  if (step === lastStep) { requestAnimationFrame(draw); return; }
+  lastStep = step;
+  const time = isQuiet() ? 0 : step / FPS;
   const total = poem ? poem.stanzas.length : 6;
   const memory = game.remembered / total;   // how much of the world has come back
   const light = game.light / 100;
@@ -301,7 +345,7 @@ function draw(t = 0) {
 
 // The painted version of the scene: artwork underneath, living effects on top.
 function drawPainted(time, memory, light) {
-  ctx.drawImage(art.video || art.shore, 0, 0, W, H);
+  ctx.drawImage(art.video || pic("shore"), 0, 0, W, H);
   if (!art.video) { if (!isQuiet()) livePainting(time); drawWater(time); }
   // the world dims while she's forgotten and brightens as she returns
   ctx.fillStyle = `rgba(5, 8, 22, ${0.45 * (1 - memory)})`;
@@ -318,12 +362,13 @@ function drawPainted(time, memory, light) {
   drawGhost(time, memory, light);
   drawMotes(time, memory);
   drawMist(time);
+  if (isVintage()) drawVintageOverlay(time);
 }
 
 // Bring the still painting to life: the sea rolls in slow waves and the tall grass sways.
 // Each thin strip of the painting is nudged sideways by a gentle wave.
 function livePainting(time) {
-  const img = art.shore, k = img.width / W;
+  const img = pic("shore"), k = img.width / W;
   // sea: from the horizon down, to the right of the shore
   for (let y = H * 0.6; y < H; y += 2) {
     const depth = (y - H * 0.6) / (H * 0.4);              // waves grow toward the viewer
@@ -419,7 +464,7 @@ function drawGhost(time, memory, light) {
     ctx.rotate(sway);
     ctx.scale(breathe, breathe);
     ctx.globalAlpha = alpha * (0.88 + 0.12 * Math.sin(time * 1.7));
-    ctx.drawImage(art.ghost, -gw / 2, 0, gw, gh);
+    ctx.drawImage(pic("ghost"), -gw / 2, 0, gw, gh);
     ctx.restore();
     // mist curling at her hem
     for (let i = 0; i < 4; i++) {
