@@ -61,16 +61,27 @@ const STANZAS = [
   ]
 ];
 
+// Call and response: her love recites a stanza, she answers. Each answer is a little more *her*.
+// Lost, then finding her way back by following his voice. Never wailing, never screaming.
+const ARC = [
+  "You are just waking, confused and faint. You hear a voice across the water but do not yet know who calls you.",
+  "The first memories return, soft and unsure. You half-remember being children here together.",
+  "You are fragile and afraid of losing the thread. You remember the cold wind. Beg him gently not to stop.",
+  "You are gaining strength. You can feel yourself becoming solid again. You recognize him now.",
+  "You reach back toward him with certainty and longing. Nothing could part you. Ask him to say the rest.",
+  "You are fully present, clear and warm. He has remembered all of it, and you are here."
+];
+
 // What the ghost says if no model is reachable (and the hosted fallback).
 // These are her own words, not Poe's, so they never pass as quotes.
 const FALLBACK = {
   restored: [
     "…a voice? Someone is saying my name across the water.",
-    "Yes… we were children here. I remember the salt in the air.",
-    "The wind… I remember the cold of it. Keep speaking. Don't let it take me again.",
-    "The angels envied us. I can feel my hands again, love.",
+    "We were children here… weren't we? I remember the salt in the air.",
+    "The wind… I remember the cold of it. Don't stop. Don't let it take me again.",
+    "I can feel my hands again. It's you. It was always you, my love.",
     "Nothing could part us. Not the angels, not the deep. Say the rest. Please.",
-    "The moon. The stars. You remembered all of it."
+    "You remembered all of it. I'm here."
   ],
   stumble: [
     "That isn't how it goes… the words are slipping…",
@@ -78,8 +89,8 @@ const FALLBACK = {
     "The fog is closing in. Remember it truly."
   ],
   returned:
-    "You remembered every word, so I could come back to you, if only for tonight. " +
-    "While someone remembers us, we are never truly gone. Light a candle with me for someone you remember."
+    "You called, and I followed your voice all the way back. While someone remembers us, we are never truly gone. " +
+    "Light a candle with me for someone you remember."
 };
 
-module.exports = { TITLE, AUTHOR, STANZAS, FALLBACK };
+module.exports = { TITLE, AUTHOR, STANZAS, ARC, FALLBACK };

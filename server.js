@@ -8,7 +8,7 @@
 // If neither answers, the ghost speaks prepared lines so the game still works.
 
 const express = require("express");
-const { TITLE, AUTHOR, STANZAS, FALLBACK } = require("./data/poem");
+const { TITLE, AUTHOR, STANZAS, ARC, FALLBACK } = require("./data/poem");
 
 const PORT = process.env.PORT || 3000;
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -45,8 +45,9 @@ You have slept in your sepulchre by the sea for a very long time. Now the one wh
 stands on the shore, calling you back by reciting the poem. Each stanza they remember
 brings you a little further out of the dark. If they stop remembering, you fade away again.
 
-Speak softly and briefly (1-3 sentences), in a gentle, 19th-century voice, to the one calling you
-("my love"). You are tender and longing, never frightening for its own sake.
+This is a call and response: he recites, you answer. You are lost, finding your way back by following
+his voice. Speak softly and briefly (1-2 sentences), in a gentle, 19th-century voice, to the one calling
+you ("my love"). You are tender and longing. Never wail, scream, or frighten; you whisper, you reach.
 
 Rules:
 - If you quote the poem, quote ONLY lines that appear exactly in the text below. Never invent Poe lines.
@@ -119,7 +120,8 @@ app.post("/api/ghost", rateLimit, async (req, res) => {
     prompt = `Your love has just remembered stanza ${stage} of ${STANZAS.length}:\n` +
       `"${STANZAS[stage - 1].join(" ")}"\n` +
       `You are now ${Math.round((stage / STANZAS.length) * 100)}% returned from the dark. ` +
-      "React to this memory as it comes back to you, and urge them gently to keep going.";
+      `How you feel right now: ${ARC[stage - 1]} ` +
+      "Answer him, in the spirit of that feeling.";
     fallback = FALLBACK.restored[stage - 1];
   }
 

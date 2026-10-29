@@ -102,7 +102,8 @@ async function choose(button, correct, missingLine) {
   game.light = Math.min(100, game.light + REWARD);
   updateMeter();
   say("…", false);
-  const g = await ghost({ event: "restored", stage: game.remembered });
+  // call and response: he recites the stanza aloud, then she answers
+  const [g] = await Promise.all([ghost({ event: "restored", stage: game.remembered }), recite(game.remembered)]);
   say(g.answer, g.offline);
   if (game.remembered === poem.stanzas.length) return returned();
   game.stanza++;
@@ -155,6 +156,20 @@ function updateMeter() {
 }
 
 const pick = a => a[Math.floor(Math.random() * a.length)];
+
+// The poem read aloud (audio/stanza1.mp3 ... stanza6.mp3). Resolves when the reading ends,
+// or right away if sound is off or the file isn't there.
+function recite(n) {
+  if (!$("sound").checked) return Promise.resolve();
+  return new Promise(done => {
+    const a = new Audio(`audio/stanza${n}.mp3`);
+    const finish = () => { clearTimeout(cap); done(); };
+    const cap = setTimeout(finish, 40000);
+    a.addEventListener("ended", finish);
+    a.addEventListener("error", finish);
+    a.play().catch(finish);
+  });
+}
 function say(text, offline = false) {
   $("ghost").textContent = text;
   $("ghost").classList.toggle("offline", !!offline);
