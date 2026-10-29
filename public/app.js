@@ -48,24 +48,34 @@ function distractors(correct, stanzaIndex) {
   return shuffle([...new Set(pool)]).slice(0, 2);
 }
 
-function showStanza() {
+async function showStanza() {
+  const n = game.stanza + 1;
   const lines = poem.stanzas[game.stanza];
   const missing = lines[lines.length - 1];
   const stanzaEl = $("stanza");
   stanzaEl.hidden = false;
   stanzaEl.innerHTML = "";
-  const shown = lines.slice(0, -1);
-  shown.forEach((line, i) => {
+  $("next").hidden = true;
+  $("choices").hidden = true;
+  const spans = lines.slice(0, -1).map(line => {
     const span = document.createElement("span");
     span.textContent = line + "\n";
-    if (!isQuiet()) { span.style.opacity = 0; setTimeout(() => (span.style.opacity = 1), i * 350); }
+    span.style.opacity = isQuiet() ? 1 : 0;
     stanzaEl.appendChild(span);
+    return span;
   });
   const blank = document.createElement("span");
   blank.className = "missing";
   blank.id = "blank";
   blank.textContent = "…";
   stanzaEl.appendChild(blank);
+
+  // He reads the stanza line by line (part A), stopping right before the missing line.
+  // Each line appears as he reaches it. Without audio, the lines simply fade in one by one.
+  const played = await playClip(`stanza${n}-a`, duration => scheduleLines(spans, n, duration));
+  if (!played) spans.forEach((sp, i) => setTimeout(() => (sp.style.opacity = 1), isQuiet() ? 0 : i * 350));
+  else spans.forEach(sp => (sp.style.opacity = 1));
+  if (game.over) return;
 
   const box = $("choices");
   box.innerHTML = "";
@@ -87,6 +97,7 @@ async function choose(button, correct, missingLine) {
     button.disabled = true;
     if (!isGentle()) game.light = Math.max(0, game.light - PENALTY);   // gentle mode never costs her light
     game.flickerAt = performance.now();
+    playClip(`stumble${1 + Math.floor(Math.random() * 3)}`);
     say(pick(["That isn't how it goes… the words are slipping…",
               "No… I'm fading… try again, my love.",
               "The fog is closing in. Remember it truly."]));
@@ -124,6 +135,7 @@ function fade() {
   game.choosing = false;
   game.over = true;
   $("choices").hidden = true;
+  playClip("faded");
   say("Her light goes out, and the sea takes her back. No one remembered her in time… but memory can always call her again.");
   $("again").hidden = false;
   $("again").focus({ preventScroll: true });
@@ -159,18 +171,45 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 
 // The poem read aloud (audio/stanza1.mp3 ... stanza6.mp3). Resolves when the reading ends,
 // or right away if sound is off or the file isn't there.
-function recite(n) {
-  if (!$("sound").checked) return Promise.resolve();
+// When each shown line appears during part A: exact times from audio/timings.json if present,
+// otherwise spread across the clip in proportion to each line's length.
+let timings = {};
+fetch("audio/timings.json").then(r => (r.ok ? r.json() : {})).then(t => (timings = t)).catch(() => {});
+function scheduleLines(spans, n, duration) {
+  const starts = timings[n] || (() => {
+    const lens = spans.map(sp => sp.textContent.length), total = lens.reduce((a, b) => a + b, 0);
+    let acc = 0;
+    return lens.map(l => { const t = (acc / total) * duration * 0.92; acc += l; return t; });
+  })();
+  spans.forEach((sp, i) => setTimeout(() => (sp.style.opacity = 1), (starts[i] || 0) * 1000));
+}
+
+// Play one recorded clip from audio/. Resolves true when it finishes, false if sound is off or the file is missing.
+// onStart(durationSeconds) fires once the clip starts, so text can be timed to it.
+function playClip(name, onStart) {
+  if (!$("sound").checked) return Promise.resolve(false);
+  const take = new URLSearchParams(location.search).get(`take-${name}`);   // testing: ?take-stanza3-a=2
   return new Promise(done => {
-    // testing alternate takes: add ?take3=2 to the address to hear stanza 3, take 2
-    const take = new URLSearchParams(location.search).get(`take${n}`);
-    const a = new Audio(take ? `audio/stanza${n}-take${take}.mp3` : `audio/stanza${n}.mp3`);
-    const finish = () => { clearTimeout(cap); done(); };
-    const cap = setTimeout(finish, 40000);
-    a.addEventListener("ended", finish);
-    a.addEventListener("error", finish);
-    a.play().catch(finish);
+    const a = new Audio(`audio/${name}${take ? `-take${take}` : ""}.mp3`);
+    let started = false;
+    const cap = setTimeout(() => done(started), 60000);
+    a.addEventListener("playing", () => { if (!started) { started = true; onStart && onStart(a.duration || 10); } });
+    a.addEventListener("ended", () => { clearTimeout(cap); done(true); });
+    a.addEventListener("error", () => { clearTimeout(cap); done(false); });
+    a.play().catch(() => { clearTimeout(cap); done(false); });
   });
+}
+
+// After the right answer: he says the last line and she answers (part B).
+// Falls back to the older single-file reading of the whole stanza.
+async function recite(n) {
+  if (await playClip(`stanza${n}-b`)) return;
+  if (!(await audioExists(`stanza${n}-a`))) await playClip(`stanza${n}`);
+}
+const existsCache = {};
+function audioExists(name) {
+  if (name in existsCache) return Promise.resolve(existsCache[name]);
+  return fetch(`audio/${name}.mp3`, { method: "HEAD" }).then(r => (existsCache[name] = r.ok)).catch(() => (existsCache[name] = false));
 }
 function say(text, offline = false) {
   $("ghost").textContent = text;
