@@ -31,6 +31,11 @@ The ending asks for the name of someone you loved. That name goes to a model on 
 ### Hosted (Gemma through Google's API)
 Set `GEMMA_API_KEY` (from Google AI Studio) and optionally `GEMMA_API_MODEL` (default `gemma-3-4b-it`). The server then calls Gemma through Google instead of Ollama. If no model answers at all, the ghost speaks prepared lines (marked ✦) so the game still works.
 
+### Tracing with Sentry (optional)
+Set `SENTRY_DSN` before starting:
+- Codespaces / macOS / Linux: `export SENTRY_DSN="your-dsn"` then `npm start`
+- PowerShell: `$env:SENTRY_DSN="your-dsn"; npm start`
+
 ## Project layout
 
 ```
@@ -60,6 +65,7 @@ Everything this project uses, so it's all traceable.
 | **kingdombythesea.tech** | The project's home, a .tech domain claimed through Hacktoberfest. |
 | **Kittl** (Nano Banana Pro) | Generating the Flash-style shore and ghost art. |
 | **The Met, fashion plate** | Annabel's gown is based on *Le Follet*, April 1849 (the year the poem was published), from The Metropolitan Museum of Art's fashion plate collection. |
+| **Sentry** | Tracing every call to Gemma: which model answered, how long it took, tokens in and out, and every time the ghost had to fall back to a prepared line. No prompts, replies or candle names are sent. |
 | **GitHub Codespaces** | Building and testing in the cloud during the week. |
 | **Claude (Anthropic)** | AI pair-programming help with the code. |
 | **Node.js + Express**, HTML canvas | The game itself: no Flash, no game engine. |

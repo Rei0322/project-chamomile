@@ -7,6 +7,7 @@
 //   - On the hosted site: Google's Gemma API, if GEMMA_API_KEY is set.
 // If neither answers, the ghost speaks prepared lines so the game still works.
 
+const Sentry = require("./instrument");   // must load first
 const express = require("express");
 const { TITLE, AUTHOR, STANZAS, ARC, FALLBACK } = require("./data/poem");
 
@@ -75,7 +76,7 @@ async function askOllama(userMessage) {
   });
   if (!r.ok) throw new Error(`Ollama responded ${r.status}`);
   const data = await r.json();
-  return data.message?.content?.trim();
+  return { text: data.message?.content?.trim(), inTokens: data.prompt_eval_count, outTokens: data.eval_count };
 }
 
 async function askGoogle(userMessage) {
@@ -91,13 +92,33 @@ async function askGoogle(userMessage) {
   });
   if (!r.ok) throw new Error(`Gemma API responded ${r.status}`);
   const data = await r.json();
-  return data.candidates?.[0]?.content?.parts?.map(p => p.text).join("").trim();
+  return {
+    text: data.candidates?.[0]?.content?.parts?.map(p => p.text).join("").trim(),
+    inTokens: data.usageMetadata?.promptTokenCount, outTokens: data.usageMetadata?.candidatesTokenCount
+  };
 }
 
-async function askGemma(userMessage) {
-  const answer = PROVIDER === "google" ? await askGoogle(userMessage) : await askOllama(userMessage);
-  if (!answer) throw new Error("Empty reply");
-  return answer;
+// Every call to Gemma is one traced span: which model, how long, how many tokens. Never the text.
+async function askGemma(userMessage, purpose = "ghost") {
+  const model = PROVIDER === "google" ? GEMMA_API_MODEL : MODEL;
+  return Sentry.startSpan({
+    name: `chat ${model}`, op: "gen_ai.chat",
+    attributes: { "gen_ai.system": PROVIDER === "google" ? "google_gemma_api" : "ollama", "gen_ai.request.model": model, "ghost.purpose": purpose }
+  }, async span => {
+    const r = PROVIDER === "google" ? await askGoogle(userMessage) : await askOllama(userMessage);
+    if (!r.text) throw new Error("Empty reply from Gemma");
+    span.setAttributes({
+      "gen_ai.response.model": model,
+      ...(r.inTokens != null && { "gen_ai.usage.input_tokens": r.inTokens }),
+      ...(r.outTokens != null && { "gen_ai.usage.output_tokens": r.outTokens })
+    });
+    return r.text;
+  });
+}
+
+// When Gemma can't answer, the ghost uses a prepared line. Record that in Sentry so fallbacks are visible.
+function noteFallback(err, purpose) {
+  Sentry.withScope(scope => { scope.setTag("ghost.fallback", "true"); scope.setTag("ghost.purpose", purpose); Sentry.captureException(err); });
 }
 
 // The poem itself (public domain). The game checks answers in the browser; no AI needed for that.
@@ -126,9 +147,10 @@ app.post("/api/ghost", rateLimit, async (req, res) => {
   }
 
   try {
-    res.json({ answer: await askGemma(prompt), offline: false });
+    res.json({ answer: await askGemma(prompt, event === "returned" ? "returned" : `stanza ${stage}`), offline: false });
   } catch (err) {
     console.error(`[ghost] ${err.message}; using prepared line`);
+    noteFallback(err, event === "returned" ? "returned" : `stanza ${stage}`);
     res.json({ answer: fallback, offline: true });
   }
 });
@@ -141,16 +163,20 @@ app.post("/api/candle", rateLimit, async (req, res) => {
     const answer = await askGemma(
       `A visitor has lit a candle at your sepulchre for someone they remember, named ${name}. ` +
       `Offer a short, tender remembrance for ${name} (3 sentences at most). ` +
-      "Remind them that remembering is how the ones we love stay with us."
+      "Remind them that remembering is how the ones we love stay with us.",
+      "candle"
     );
     res.json({ answer, offline: false });
   } catch (err) {
+    noteFallback(err, "candle");
     res.json({
       answer: `The candle is lit for ${name}. As long as you remember ${name}, they are never truly gone.`,
       offline: true
     });
   }
 });
+
+Sentry.setupExpressErrorHandler(app);
 
 // If the chosen model isn't installed, use whichever Gemma Ollama does have.
 async function pickInstalledGemma() {
