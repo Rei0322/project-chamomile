@@ -24,7 +24,7 @@ body {
 .fill { height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--ghost) 0 10px, var(--ghost-deep) 10px 12px); }
 .loader-pct { font-size: .8rem; letter-spacing: .05em; }
 
-#stage { width: min(800px, 100%); }
+#stage { width: min(1200px, 100%); }
 canvas { width: 100%; height: auto; display: block; 
   border: 3px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
 
@@ -37,7 +37,14 @@ canvas { width: 100%; height: auto; display: block;
   border: 2px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi); }
 .stanza { white-space: pre-line; font-style: italic; color: var(--moon); margin: 0 0 .7rem; line-height: 1.5; }
 .stanza .missing { color: var(--ghost); }
-.ghost { margin: .4rem 0 0; color: var(--ghost); text-shadow: 0 0 6px rgba(159,216,168,.45); min-height: 1.4em; }
+/* Her words appear on the scene, in the sky between the tomb and the moon */
+.ghost { position: absolute; left: 50%; top: 5%; transform: translateX(-50%); width: min(78%, 46rem); margin: 0;
+  text-align: center; font-style: italic; font-size: clamp(.95rem, 2.1vw, 1.45rem); line-height: 1.4;
+  color: var(--ghost); text-shadow: 0 0 10px rgba(159,216,168,.55), 0 1px 3px #000, 0 0 2px #000;
+  pointer-events: none; opacity: 0; }
+.ghost.show { animation: herWords 1.6s ease forwards; }
+@keyframes herWords { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .ghost.show { animation: none; opacity: 1; } }
 .ghost.offline::after { content: " ✦"; opacity: .6; }
 
 .choices { display: grid; gap: .45rem; margin: .2rem 0 .6rem; }

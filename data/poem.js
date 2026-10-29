@@ -72,25 +72,36 @@ const ARC = [
   "You are fully present, clear and warm. He has remembered all of it, and you are here."
 ];
 
-// What the ghost says if no model is reachable (and the hosted fallback).
+// What she whispers aloud after each stanza (her recorded lines, part B). On screen, her words
+// always begin with exactly these, so what you read matches what you hear.
+const SPOKEN = [
+  "…someone is calling me…",
+  "…we were children here…",
+  "…is it you?",
+  "…I'm still here, my love.",
+  "…stay with me, please.",
+  "You remembered me."
+];
+
+// What the ghost says if no model is reachable: her spoken line, then a few words of her own.
 // These are her own words, not Poe's, so they never pass as quotes.
 const FALLBACK = {
   restored: [
-    "…a voice? Someone is saying my name across the water.",
-    "We were children here… weren't we? I remember the salt in the air.",
-    "The wind… I remember the cold of it. Don't stop. Don't let it take me again.",
-    "I can feel my hands again. It's you. It was always you, my love.",
-    "Nothing could part us. Not the angels, not the deep. Stay with me, my love. Please.",
-    "You remembered all of it. I'm here."
-  ],
+    "Across the water… is that my name?",
+    "I remember the salt in the air.",
+    "Don't let the wind take me again.",
+    "I can feel my hands again.",
+    "Nothing could part us. Not the angels, not the deep.",
+    "All of it. I'm here."
+  ].map((more, i) => `${SPOKEN[i]} ${more}`),
   stumble: [
-    "That isn't how it goes… the words are slipping…",
-    "No… I'm fading… try again, my love.",
-    "The fog is closing in. Remember it truly."
+    "…the words are slipping…",
+    "…I'm fading… try again, my love…",
+    "…remember me…"
   ],
   returned:
     "You called, and I followed your voice all the way back. While someone remembers us, we are never truly gone. " +
     "Light a candle with me for someone you remember."
 };
 
-module.exports = { TITLE, AUTHOR, STANZAS, ARC, FALLBACK };
+module.exports = { TITLE, AUTHOR, STANZAS, ARC, SPOKEN, FALLBACK };

@@ -9,7 +9,7 @@
 
 const Sentry = require("./instrument");   // must load first
 const express = require("express");
-const { TITLE, AUTHOR, STANZAS, ARC, FALLBACK } = require("./data/poem");
+const { TITLE, AUTHOR, STANZAS, ARC, SPOKEN, FALLBACK } = require("./data/poem");
 
 const PORT = process.env.PORT || 3000;
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -121,6 +121,14 @@ function noteFallback(err, purpose) {
   Sentry.withScope(scope => { scope.setTag("ghost.fallback", "true"); scope.setTag("ghost.purpose", purpose); Sentry.captureException(err); });
 }
 
+// Her on-screen words must start with what she just said aloud. If Gemma drifted, put the spoken line first.
+const bare = t => t.toLowerCase().replace(/[^\p{L}\s']/gu, "").replace(/\s+/g, " ").trim();
+function matchSpoken(answer, spoken) {
+  const text = String(answer || "").replace(/^["'“”\s]+|["'“”\s]+$/g, "");
+  if (bare(text).startsWith(bare(spoken))) return text;
+  return `${spoken} ${text}`.trim();
+}
+
 // The poem itself (public domain). The game checks answers in the browser; no AI needed for that.
 app.get("/api/poem", (req, res) => {
   res.json({ title: TITLE, author: AUTHOR, stanzas: STANZAS });
@@ -142,12 +150,16 @@ app.post("/api/ghost", rateLimit, async (req, res) => {
       `"${STANZAS[stage - 1].join(" ")}"\n` +
       `You are now ${Math.round((stage / STANZAS.length) * 100)}% returned from the dark. ` +
       `How you feel right now: ${ARC[stage - 1]} ` +
-      "Answer him, in the spirit of that feeling.";
+      `You have just whispered aloud: "${SPOKEN[stage - 1]}" ` +
+      `Begin your reply with exactly those words, then add ONE short sentence of your own in the same feeling. ` +
+      "Nothing more.";
     fallback = FALLBACK.restored[stage - 1];
   }
 
   try {
-    res.json({ answer: await askGemma(prompt, event === "returned" ? "returned" : `stanza ${stage}`), offline: false });
+    let answer = await askGemma(prompt, event === "returned" ? "returned" : `stanza ${stage}`);
+    if (event !== "returned") answer = matchSpoken(answer, SPOKEN[stage - 1]);
+    res.json({ answer, offline: false });
   } catch (err) {
     console.error(`[ghost] ${err.message}; using prepared line`);
     noteFallback(err, event === "returned" ? "returned" : `stanza ${stage}`);

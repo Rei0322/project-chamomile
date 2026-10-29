@@ -97,10 +97,9 @@ async function choose(button, correct, missingLine) {
     button.disabled = true;
     if (!isGentle()) game.light = Math.max(0, game.light - PENALTY);   // gentle mode never costs her light
     game.flickerAt = performance.now();
-    playClip(`stumble${1 + Math.floor(Math.random() * 3)}`);
-    say(pick(["That isn't how it goes… the words are slipping…",
-              "No… I'm fading… try again, my love.",
-              "The fog is closing in. Remember it truly."]));
+    const k = Math.floor(Math.random() * STUMBLES.length);   // the words on screen match the voice
+    playClip(`stumble${k + 1}`);
+    say(STUMBLES[k]);
     updateMeter();
     if (!isGentle() && game.light <= 0) fade();
     return;
@@ -144,7 +143,7 @@ function fade() {
 
 function reset() {
   Object.assign(game, { stanza: 0, remembered: 0, light: START_LIGHT, choosing: false, over: false });
-  bed.faded = false;
+  bed.faded = bed.credits = false;
   if (bed.started && $("sound").checked) { bed.early.currentTime = 0; bed.early.play().catch(() => {}); }
   mixBed(3000);
   $("again").hidden = true;
@@ -176,6 +175,7 @@ function updateMeter() {
 }
 
 const pick = a => a[Math.floor(Math.random() * a.length)];
+const STUMBLES = ["…the words are slipping…", "…I'm fading… try again, my love…", "…remember me…"];
 
 // ---------- Background: waves and music ----------
 // audio/waves.mp3 loops quietly under everything. The music is the emotional bed: music-early.mp3
@@ -186,7 +186,7 @@ const bed = {
   waves: Object.assign(new Audio("audio/waves.mp3"), { loop: true, volume: 0 }),
   early: Object.assign(new Audio("audio/music-early.mp3"), { loop: true, volume: 0 }),
   late: Object.assign(new Audio("audio/music-late.mp3"), { loop: true, volume: 0 }),
-  speaking: 0, started: false, faded: false
+  speaking: 0, started: false, faded: false, credits: false
 };
 const WAVES_VOL = 0.5, DUCKED = 0.35;   // music under a voice plays at 35% of its level
 const musicLevel = () => bed.faded ? 0 : Math.min(0.42, 0.16 + 0.045 * game.remembered);
@@ -204,7 +204,7 @@ const tracks = () => [bed.waves, bed.early, bed.late];
 function mixBed(ms) {
   if (!bed.started) return;
   const level = musicLevel() * (bed.speaking ? DUCKED : 1), late = game.remembered >= LATE_FROM;
-  rampTo(bed.waves, WAVES_VOL, ms);
+  rampTo(bed.waves, bed.credits ? 0 : WAVES_VOL, bed.credits ? 4000 : ms);
   rampTo(bed.early, late ? 0 : level, late ? Math.max(ms, 4000) : ms);
   rampTo(bed.late, late ? level : 0, late ? Math.max(ms, 4000) : ms);
   if (late && bed.late.paused && $("sound").checked) bed.late.play().catch(() => {});
@@ -264,8 +264,11 @@ function audioExists(name) {
   return fetch(`audio/${name}.mp3`, { method: "HEAD" }).then(r => (existsCache[name] = r.ok)).catch(() => (existsCache[name] = false));
 }
 function say(text, offline = false) {
-  $("ghost").textContent = text;
-  $("ghost").classList.toggle("offline", !!offline);
+  const el = $("ghost");
+  el.classList.remove("show"); void el.offsetWidth;
+  el.textContent = text;
+  el.classList.toggle("offline", !!offline);
+  if (text) el.classList.add("show");
 }
 async function ghost(body) {
   try {
@@ -325,7 +328,7 @@ async function rollCredits() {
   box.style.setProperty("--h", box.clientHeight + "px");
   box.hidden = false;
   box.style.setProperty("--h", box.clientHeight + "px");
-  bed.faded = true; mixBed(3000);               // the music bows out; the swell takes over, the sea stays
+  bed.faded = bed.credits = true; mixBed(3000);   // the music and the sea bow out; the swell takes over
   const ROLL_MS = 24000;
   box.style.setProperty("--roll", ROLL_MS / 1000 + "s");
   await Promise.all([playClip("swell"), new Promise(r => setTimeout(r, isQuiet() ? 2000 : ROLL_MS))]);
@@ -351,9 +354,25 @@ const layout = () => (art.shore ? LAYOUT.painted : LAYOUT.drawn);
 const art = {};
 for (const [key, file] of [["shore", "art/shore.jpg"], ["ghost", "art/ghost.png"]]) {
   const img = new Image();
-  img.onload = () => { art[key] = img; art[key + "Vintage"] = vintageCopy(img); };
+  img.onload = () => { art[key] = img; art[key + "Vintage"] = vintageCopy(img); if (key === "shore") art.sea = seaOnly(img); };
   img.src = file;
 }
+// Just the water from the shore art (land, rocks and outlines made transparent), so the waves can
+// bob without the island moving with them.
+function seaOnly(img) {
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const x = c.getContext("2d"); x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), px = d.data, top = Math.floor(c.height * 0.6);
+  for (let y = 0; y < c.height; y++) for (let i = y * c.width * 4, e = i + c.width * 4; i < e; i += 4) {
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    const water = b > r + 25 && b >= g - 5 && r + g + b > 60;   // blues of the sea
+    const shine = r > 200 && g > 200 && b > 150;                 // the moon's path on the water
+    if (y < top || !(water || shine)) px[i + 3] = 0;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+
 // A 2000s-web version of an image: fewer colors with ordered dithering, like an old GIF.
 function vintageCopy(img) {
   const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
@@ -515,7 +534,7 @@ function livePainting(time) {
   const sea0 = H * 0.61;
   for (let x = W * 0.47; x < W; x += 3) {
     const dy = Math.sin(x * 0.045 - time * 1.6) * 2.2 + Math.sin(x * 0.013 + time * 0.7) * 1.6;
-    ctx.drawImage(art.shore, x * k, sea0 * k, 3 * k, (H - sea0) * k, x, sea0 + dy, 3, H - sea0);
+    ctx.drawImage(art.sea || art.shore, x * k, sea0 * k, 3 * k, (H - sea0) * k, x, sea0 + dy, 3, H - sea0);
   }
   // Flash-style crest lines drifting across the water
   ctx.strokeStyle = "rgba(190,215,255,0.35)"; ctx.lineWidth = 1.5;
