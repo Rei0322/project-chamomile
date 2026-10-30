@@ -1,0 +1,27 @@
+{
+  "title": "A Kingdom by the Sea",
+  "upload_type": "software",
+  "description": "<p>A Flash-style memory game inspired by Edgar Allan Poe's \"Annabel Lee\" (1849). You play the lost love, calling Annabel Lee back from her sepulchre by remembering the poem, one stanza at a time; forget, and she fades. Her words are written by Gemma (open-weight, run locally through Ollama or online through Google's Gemma API), voiced with ElevenLabs, traced with Sentry, and drawn on an HTML canvas at 12 fps with no Flash and no game engine. Built for the DEV Hacktoberfest Open-Source AI Challenge, Week 4: Ghost in the Machine (October 2026). Code name: Project Chamomile.</p>",
+  "creators": [
+    { "name": "Ray, Samira" }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "Edgar Allan Poe",
+    "Annabel Lee",
+    "Gemma",
+    "Ollama",
+    "open-weight model",
+    "ElevenLabs",
+    "Sentry",
+    "browser game",
+    "Flash homage",
+    "Día de los Muertos",
+    "Hacktoberfest"
+  ],
+  "related_identifiers": [
+    { "identifier": "https://www.kingdombythesea.tech", "relation": "isSupplementTo", "resource_type": "other" }
+  ],
+  "language": "eng",
+  "version": "1.0.0"
+}

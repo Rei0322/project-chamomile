@@ -1,6 +1,6 @@
 {
   "name": "project-chamomile",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A Kingdom by the Sea: a Shockwave-style gothic point-and-click inspired by Poe's Annabel Lee, with a local open-weight model (Gemma via Ollama) as the ghost.",
   "main": "server.js",
   "scripts": {

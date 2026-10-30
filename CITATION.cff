@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use or reference this game, please cite it as below."
+title: "A Kingdom by the Sea"
+type: software
+authors:
+  - family-names: Ray
+    given-names: Samira
+version: 1.0.0
+date-released: 2026-10-31
+license: MIT
+url: "https://www.kingdombythesea.tech"
+repository-code: "https://github.com/Rei0322/project-chamomile"
+abstract: >-
+  A Flash-style memory game inspired by Edgar Allan Poe's "Annabel Lee" (1849).
+  You play the lost love, calling Annabel Lee back by remembering the poem; her words
+  are written by Gemma, an open-weight model.
+keywords:
+  - Edgar Allan Poe
+  - Annabel Lee
+  - Gemma
+  - open-weight model
+  - browser game
