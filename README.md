@@ -1,6 +1,6 @@
 # 🌙 A Kingdom by the Sea
 
-[![DOI](https://zenodo.org/badge/1434976013.svg)](https://doi.org/10.5281/zenodo.23822351)
+[![DOI](https://zenodo.org/badge/1434976013.svg)](https://doi.org/10.5281/zenodo.23822351) · **[Play it at kingdombythesea.tech](https://www.kingdombythesea.tech)**
 
 *Code name: Project Chamomile.*
 
@@ -87,6 +87,10 @@ The poem: "Annabel Lee" by Edgar Allan Poe (1849), public domain.
 Inspired by Día de los Muertos and the idea, as in *Coco*, that the dead stay with us while we remember them; and by Annabel Blackthorn in Cassandra Clare's *Lady Midnight*, which first led me to the poem.
 
 Built by [Samira Ray](https://samira-ray.dev).
+
+## Cite this project
+
+Archived on Zenodo: [10.5281/zenodo.23822351](https://doi.org/10.5281/zenodo.23822351). GitHub's **"Cite this repository"** button gives the citation in APA or BibTeX.
 
 ## License
 
