@@ -128,6 +128,7 @@ async function returned() {
   const g = await ghost({ event: "returned" });
   say(g.answer, g.offline);
   $("candle").hidden = false;
+  $("roll").hidden = false;   // lighting a candle is optional: you can go straight to the credits
 }
 
 function fade() {
@@ -151,7 +152,7 @@ function reset() {
   $("credits").hidden = true;
   candles = 0;
   $("roll").hidden = true;
-  askForName("Light a candle for someone you remember:");
+  askForName("If you'd like, light a candle for someone you remember:");
   say("");
   updateMeter();
   showStanza();
@@ -188,8 +189,9 @@ const bed = {
   late: Object.assign(new Audio("audio/music-late.mp3"), { loop: true, volume: 0 }),
   speaking: 0, started: false, faded: false, credits: false
 };
-const WAVES_VOL = 0.5, DUCKED = 0.35;   // music under a voice plays at 35% of its level
-const musicLevel = () => bed.faded ? 0 : Math.min(0.42, 0.16 + 0.045 * game.remembered);
+// The sea sits under the music, and the music sits under the voices.
+const WAVES_VOL = 0.22, DUCKED = 0.55;   // music under a voice plays at 55% of its level
+const musicLevel = () => bed.faded ? 0 : Math.min(0.5, 0.32 + 0.03 * game.remembered);
 function rampTo(a, target, ms = 1200) {
   clearInterval(a._ramp);
   const from = a.volume, t0 = performance.now();
@@ -213,7 +215,7 @@ function startBed() {
   if (bed.started || !$("sound").checked) return;
   bed.started = true;
   for (const a of [bed.waves, bed.early]) a.play().catch(() => {});
-  mixBed(3000);
+  mixBed(1200);   // the music is there from the first line of the first stanza
 }
 $("sound").addEventListener("change", () => {
   if ($("sound").checked) { if (bed.started) { for (const a of tracks()) if (a !== bed.late || game.remembered >= LATE_FROM) a.play().catch(() => {}); mixBed(1500); } else startBed(); }
