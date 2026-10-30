@@ -1,5 +1,7 @@
 # 🌙 A Kingdom by the Sea
 
+[![DOI](https://zenodo.org/badge/1434976013.svg)](https://doi.org/10.5281/zenodo.23822351)
+
 *Code name: Project Chamomile.*
 
 A Flash-style gothic memory game inspired by Edgar Allan Poe's **"Annabel Lee"** (1849, public domain), built for the DEV **Hacktoberfest Open-Source AI Challenge, Week 4: Ghost in the Machine**.
