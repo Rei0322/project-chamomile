@@ -35,8 +35,8 @@ The ending asks for the name of someone you loved. Run it at home and that name 
 ### Hosted (Gemma through Google's API)
 Set `GEMMA_API_KEY` (from Google AI Studio) and optionally `GEMMA_API_MODEL` (default `gemma-4-26b-a4b-it`; Google no longer serves Gemma 3 on its API). The server then calls Gemma through Google instead of Ollama. If no model answers at all, the ghost speaks prepared lines (marked ✦) so the game still works.
 
-### Hosting on DigitalOcean
-The live site runs on **DigitalOcean App Platform** (Basic, Node, `npm start`, port 8080), deploying from this repo's `main` branch, with `GEMMA_API_KEY`, `SENTRY_DSN` and `SENTRY_ENVIRONMENT=production` set as encrypted environment variables. The domain uses DigitalOcean's nameservers.
+### Hosting on Vercel
+The live site runs on **Vercel** (free Hobby plan), deploying from this repo's `main` branch. Vercel detects the Express app in `server.js` and runs it as a function; `public/` is served from its CDN. Set `GEMMA_API_KEY`, `SENTRY_DSN` and `SENTRY_ENVIRONMENT=production` in the project's environment variables. (v1.0.0, the judged DEV entry, was hosted on DigitalOcean App Platform.)
 
 ### Tracing with Sentry (optional)
 Set `SENTRY_DSN` before starting:
@@ -74,7 +74,7 @@ Everything this project uses, so it's all traceable.
 | **Gemma** (Google DeepMind, open-weight) | Annabel Lee's words. Runs locally through **Ollama** (`gemma3:4b` at home, `gemma3:1b` in Codespaces), and through **Google's Gemma API** (`gemma-4-26b-a4b-it`) on the hosted site. |
 | **Ollama** | Serving Gemma on your own machine, so the candle name never leaves it. |
 | **ElevenLabs** | Both voices, designed in Studio: Poe Narrator (the lover, reading the poem) and Annabel Narrator (her whispers). The sea loop (Sound Effects) and the music (Music): "Tide Memory," "Mourning Light" and "Warm Return." Voice by ElevenLabs. |
-| **DigitalOcean** | App Platform hosting for the live game. |
+| **Vercel** | Hosting for the live game (v1.0.0 ran on DigitalOcean App Platform). |
 | **kingdombythesea.tech** | The project's home, a .tech domain claimed through Hacktoberfest. |
 | **Kittl** (Nano Banana Pro) | Generating the Flash-style shore and ghost art. |
 | **The Met, fashion plate** | Annabel's gown is based on *Le Follet*, April 1849 (the year the poem was published), from The Metropolitan Museum of Art's fashion plate collection. |
@@ -86,7 +86,7 @@ Everything this project uses, so it's all traceable.
 The poem: "Annabel Lee" by Edgar Allan Poe (1849), public domain.
 Inspired by Día de los Muertos and the idea, as in *Coco*, that the dead stay with us while we remember them; and by Annabel Blackthorn in Cassandra Clare's *Lady Midnight*, which first led me to the poem.
 
-Built by [Samira Ray](https://samira-ray.dev).
+Built by [Samira Ray](https://samira-ray.dev). Part of [her arcade](https://samira-ray.dev/arcade).
 
 ## Cite this project
 

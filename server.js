@@ -22,7 +22,11 @@ const GEMMA_API_MODEL = process.env.GEMMA_API_MODEL || "gemma-4-26b-a4b-it";
 const PROVIDER = GEMMA_API_KEY ? "google" : "ollama";
 
 const app = express();
+// Behind Vercel's proxy, so read the visitor's address from X-Forwarded-For.
+// Without this every visitor shares one rate-limit bucket.
+app.set("trust proxy", true);
 app.use(express.json({ limit: "10kb" }));
+// Locally Express serves public/. On Vercel, public/ is served from the CDN instead.
 app.use(express.static("public"));
 
 // ---------- Simple rate limit: a few ghost replies per minute per visitor ----------

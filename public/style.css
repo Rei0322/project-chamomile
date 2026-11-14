@@ -90,3 +90,9 @@ button.big { margin-top: .6rem; }
   .toggles { grid-area: toggles; }
   #dialogue { grid-area: dialogue; margin-top: 0; align-self: stretch; contain: size; overflow-y: auto; min-height: 0; }
 }
+
+/* ---------- Way back to the arcade on samira-ray.dev ---------- */
+#credits .c-more { margin: 1.2rem 0 0; font-size: .85rem; }
+#credits .c-more a, .arcade-link a { color: var(--ghost); }
+.arcade-link { margin: .6rem 0 0; font-size: .8rem; opacity: .75; }
+.arcade-link a:hover, .arcade-link a:focus-visible { opacity: 1; }
