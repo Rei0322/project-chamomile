@@ -105,6 +105,8 @@ async function askGoogle(userMessage) {
   });
   let r = await call(true);
   if (r.status === 400) r = await call(false);
+  // Google's API sometimes answers 500/503 for a moment; one quick retry usually gets through.
+  if (r.status >= 500) { await new Promise(ok => setTimeout(ok, 600)); r = await call(true); }
   if (!r.ok) throw new Error(`Gemma API responded ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const data = await r.json();
   const cand = data.candidates?.[0], parts = cand?.content?.parts || [];
