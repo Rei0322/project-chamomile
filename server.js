@@ -9,6 +9,8 @@
 
 const Sentry = require("./instrument");   // must load first
 const express = require("express");
+const path = require("path");
+const fs = require("fs");
 const { TITLE, AUTHOR, STANZAS, ARC, SPOKEN, FALLBACK } = require("./data/poem");
 
 const PORT = process.env.PORT || 3000;
@@ -26,8 +28,11 @@ const app = express();
 // Without this every visitor shares one rate-limit bucket.
 app.set("trust proxy", true);
 app.use(express.json({ limit: "10kb" }));
-// Locally Express serves public/. On Vercel, public/ is served from the CDN instead.
-app.use(express.static("public"));
+// Locally Express serves public/. On Vercel, public/ is served from the CDN instead,
+// but "/" itself still reaches Express, so send the game page from here.
+const INDEX = path.join(__dirname, "public", "index.html");
+app.get("/", (req, res) => (fs.existsSync(INDEX) ? res.sendFile(INDEX) : res.redirect(302, "/index.html")));
+app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- Simple rate limit: a few ghost replies per minute per visitor ----------
 const hits = new Map();
